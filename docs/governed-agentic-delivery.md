@@ -628,7 +628,7 @@ The last item is the one we would move to the top if we started again.
 
 ## Boilerplate kit
 
-The copy-ready files for every control in this paper are in this kit, with a 78-case test suite.
+The copy-ready files for every control in this paper are in this kit, with a 90-case test suite.
 Start with the [kit README](../README.md): it covers the adoption order, configuration and testing.
 
 | # | Boilerplate | File |

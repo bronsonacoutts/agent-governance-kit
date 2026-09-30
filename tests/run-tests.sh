@@ -110,6 +110,10 @@ expect N "workflow change is high-risk" rg User feature/PROJ-1 "plain" ".github/
 expect N "Azure pipeline change is high-risk" rg User feature/PROJ-1 "plain" "pipelines/ci.yml" 0
 expect N "root azure-pipelines.yml is high-risk" rg User feature/PROJ-1 "plain" "azure-pipelines.yml" 0
 expect N "governance script change is high-risk" rg User feature/PROJ-1 "plain" "scripts/agent-governance/review-gate.sh" 0
+expect N "installed pre-push hook is high-risk" rg User feature/PROJ-1 "plain" "scripts/pre-push.sh" 0
+expect N "installed branch guard is high-risk" rg User feature/PROJ-1 "plain" "scripts/branch-guard.mjs" 0
+expect N "pre-push check change is high-risk" rg User feature/PROJ-1 "plain" "pre-push-checks/PROJ-9-x.sh" 0
+expect 0 "other scripts/ files are not high-risk" rg User feature/PROJ-1 "plain" "scripts/build.mjs" 0
 expect 0 "custom HIGH_RISK_PATHS" env HIGH_RISK_PATHS='^infra/' AUTHOR_TYPE=User HEAD_REF=f BODY=p CHANGED_FILES=migrations/1.sql APPROVALS=0 bash $G/review-gate.sh
 
 echo "count-approvals.mjs"
@@ -142,6 +146,10 @@ expect N "light tier touching a lockfile" tier light 'bun.lock\n'
 expect N "light tier touching workflows" tier light '.github/workflows/ci.yml\n'
 expect N "light tier touching an Azure pipeline" tier light 'pipelines/agent-governance.yml\n'
 expect N "light tier touching governance scripts" tier light 'scripts/agent-governance/ci-tier.mjs\n'
+expect N "light tier touching the installed pre-push hook" tier light 'scripts/pre-push.sh\n'
+expect N "light tier touching a pre-push check" tier light 'pre-push-checks/PROJ-9-x.sh\n'
+expect N "light tier touching signed records" tier light 'data/signed-records/r1.json\n'
+expect 0 "light tier with an ordinary script" tier light 'scripts/build.mjs\n'
 expect N "light tier touching a nested lockfile" tier light 'apps/web/bun.lock\n'
 expect N "docs tier touching a CI folder" tier docs '.github/workflows/README.md\n'
 expect 0 "full always fits" tier full 'src/auth/session.ts\n'
@@ -163,6 +171,13 @@ expect N "missing script and package script" node $G/verify-rule-refs.mjs
 printf 'A job named "Access policy guard extra" is not the same job: CI job "Access policy".\n' > rules/drift.md
 expect N "partial job-name match rejected" node $G/verify-rule-refs.mjs
 rm rules/drift.md rules/ado.md
+mkdir -p rules/nested && ln -s .. rules/nested/loop 2>/dev/null
+if [ -L rules/nested/loop ]; then
+  expect 0 "symlink loop in rules is skipped, not followed" node $G/verify-rule-refs.mjs
+else
+  echo "  skip  symlink loop test (this filesystem can't create symlinks)"
+fi
+rm -rf rules/nested
 
 echo "check-catalogue.mjs"
 echo 'export const Button = 1' > src/ui/button.tsx
@@ -185,12 +200,18 @@ expect N "missing config" env CATALOGUE_CONFIG=nope.json node $G/check-catalogue
 echo "pre-push.sh + example check"
 git switch -q -c fix/PROJ-377-t
 git add -A && git commit -qm "test fixtures"
-expect 0 "clean branch passes" bash scripts/pre-push.sh
+expect 0 "clean branch passes" bash scripts/pre-push.sh < /dev/null
 printf 'jobs:\n  a:\n    steps:\n      - run: ls | head -1\n' > .github/workflows/bad.yml
 git add -A && git commit -qm "bad pipe"
-expect N "catches a pipe into head" bash scripts/pre-push.sh
-expect 0 "empty checks folder is a no-op" env PRE_PUSH_CHECKS_DIR=nothing-here bash scripts/pre-push.sh
-expect N "missing base ref fails closed" env BASE_REF=origin/nope bash scripts/pre-push.sh
+expect N "catches a pipe into head" bash scripts/pre-push.sh < /dev/null
+expect 0 "empty checks folder is a no-op" env PRE_PUSH_CHECKS_DIR=nothing-here bash scripts/pre-push.sh < /dev/null
+expect N "missing base ref fails closed" env BASE_REF=origin/nope bash scripts/pre-push.sh < /dev/null
+git revert --no-edit HEAD >/dev/null
+Z=0000000000000000000000000000000000000000
+H="$(git rev-parse HEAD)"; M="$(git rev-parse main)"
+expect 0 "stdin: pushing HEAD is checked normally" bash -c "echo 'refs/heads/fix/PROJ-377-t $H refs/heads/fix/PROJ-377-t $Z' | bash scripts/pre-push.sh"
+expect N "stdin: pushing a ref other than HEAD stops" bash -c "echo 'refs/heads/main $M refs/heads/main $Z' | bash scripts/pre-push.sh"
+expect 0 "stdin: a branch deletion is ignored" bash -c "echo '(delete) $Z refs/heads/old $M' | bash scripts/pre-push.sh"
 git switch -q main
 
 echo

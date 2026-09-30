@@ -23,8 +23,10 @@
 set -euo pipefail
 
 # Default high-risk paths cover CI definitions for every supported platform and the governance
-# code itself: a change to a gate must never be able to skip that gate's own review.
-HIGH_RISK="${HIGH_RISK_PATHS:-^(migrations/|src/auth/|src/billing/|data/signed-records/|\.github/|ci/|pipelines/|\.azure-pipelines/|azure-pipelines\.ya?ml$|\.gitlab-ci\.yml$|scripts/agent-governance/|hooks/|CODEOWNERS$)}"
+# code itself, both where the kit keeps it and where the README installs it (scripts/branch-guard.mjs,
+# scripts/git-health.sh, scripts/pre-push.sh, pre-push-checks/): a change to a gate must never be
+# able to skip that gate's own review.
+HIGH_RISK="${HIGH_RISK_PATHS:-^(migrations/|src/auth/|src/billing/|data/signed-records/|\.github/|ci/|pipelines/|\.azure-pipelines/|azure-pipelines\.ya?ml$|\.gitlab-ci\.yml$|scripts/agent-governance/|hooks/|scripts/(branch-guard\.mjs|git-health\.sh|pre-push\.sh)$|pre-push-checks/|CODEOWNERS$)}"
 AGENT_BRANCH="${AGENT_BRANCH_PATTERN:-^(agent|ai)/}"
 AGENT_FOOTER="${AGENT_FOOTER_PATTERN:-generated (with|by) }"
 

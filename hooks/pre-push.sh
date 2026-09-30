@@ -14,6 +14,26 @@ cd "$(git rev-parse --show-toplevel)" || exit 1
 BASE_REF="${BASE_REF:-origin/main}"
 CHECKS_DIR="${PRE_PUSH_CHECKS_DIR:-pre-push-checks}"
 
+# Git passes the refs being pushed on stdin: "<local ref> <local sha> <remote ref> <remote sha>".
+# Checks read files from the working tree, so they can only vouch for HEAD. If a push includes a
+# commit other than HEAD (e.g. `git push origin other-branch`), stop rather than approve commits
+# nobody checked. Deletions (all-zero local sha) are skipped. Run by hand, with no stdin, the
+# runner checks HEAD.
+HEAD_SHA="$(git rev-parse HEAD)"
+if [ ! -t 0 ]; then
+  while read -r local_ref local_sha _remote_ref _remote_sha; do
+    [ -z "${local_sha:-}" ] && continue
+    case "$local_sha" in *[!0]*) ;; *) continue ;; esac
+    commit="$(git rev-parse --verify --quiet "$local_sha^{commit}" || true)"
+    if [ -n "$commit" ] && [ "$commit" != "$HEAD_SHA" ]; then
+      echo "pre-push: this push includes $local_ref ($commit), which isn't the checked-out HEAD."
+      echo "The checks read the working tree, so they can't vouch for it. Check that branch out and push"
+      echo "it from there."
+      exit 1
+    fi
+  done
+fi
+
 # Fail closed: without the base we can't see every commit on the branch, and checking only the
 # last commit would silently miss violations in earlier ones.
 if ! BASE="$(git merge-base HEAD "$BASE_REF" 2>/dev/null)"; then
