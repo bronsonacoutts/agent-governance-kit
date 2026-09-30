@@ -1,0 +1,103 @@
+# Agent governance gates (Azure Pipelines). The same scripts as the GitHub Actions version
+# (ci/github/agent-governance.yml): copy this kit's scripts/ folder into the consuming repo as
+# scripts/agent-governance/ first. Guide: docs/governed-agentic-delivery.md in the kit.
+#
+# Azure Repos: add this pipeline as a Build Validation branch policy on main. PR triggers
+# in YAML are ignored for Azure Repos; the branch policy is what runs it.
+# The build service identity needs "Read" on pull requests (Project Settings > Repositories >
+# Security) for the REST calls below. "Allow scripts to access the OAuth token" must be on.
+#
+# Pipeline variables:
+#   WORK_ITEM_PREFIX  e.g. ABC for keys like ABC-123 (default PROJ). If you link Azure Boards
+#                     work items with AB#123 instead, keep the work-item guard and closure
+#                     parser off and rely on the "Check for linked work items" branch policy.
+#   HIGH_RISK_PATHS   optional ERE for paths that always need a second reader
+#
+# NOTE: this pipeline is written to the documented Azure DevOps REST API (7.1) but hasn't been
+# run against a live organisation yet. The scripts it calls are the tested ones.
+trigger: none
+
+pr:
+  branches:
+    include: [main]
+
+variables:
+  - name: WORK_ITEM_PREFIX
+    value: PROJ
+  # Declared empty on purpose: an undefined $(VAR) is passed through literally by Azure Pipelines.
+  - name: HIGH_RISK_PATHS
+    value: ''
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+- stage: AgentGovernance
+  displayName: Agent governance
+  condition: eq(variables['Build.Reason'], 'PullRequest')
+  jobs:
+  - job: Gates
+    displayName: Agent governance gates
+    steps:
+    - checkout: self
+      fetchDepth: 0
+      persistCredentials: true
+
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '20.x'
+
+    - bash: |
+        set -euo pipefail
+        PR_URL="$(System.CollectionUri)$(System.TeamProject)/_apis/git/repositories/$(Build.Repository.ID)/pullRequests/$(System.PullRequest.PullRequestId)"
+        curl -fsS -H "Authorization: Bearer $SYSTEM_ACCESSTOKEN" "$PR_URL?api-version=7.1" > pr.json
+        curl -fsS -H "Authorization: Bearer $SYSTEM_ACCESSTOKEN" "$PR_URL/labels?api-version=7.1" > labels.json
+        jq -r '.title'              pr.json > pr-title.txt
+        jq -r '.description // ""'  pr.json > pr-body.txt
+        jq -r '.sourceRefName'      pr.json > pr-branch.txt
+        jq -r '[.value[].name]|tostring' labels.json > pr-labels.txt
+        # Approvals: vote 10 (approved) or 5 (approved with suggestions), excluding the author.
+        node scripts/agent-governance/count-approvals.mjs --format=ado < pr.json > pr-approvals.txt
+        git diff --name-only "origin/$(System.PullRequest.TargetBranchName)"...HEAD > changed-files.txt
+      displayName: Read pull request details
+      env:
+        SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+
+    - bash: |
+        HEAD_REF="$(cat pr-branch.txt)" PR_TITLE="$(cat pr-title.txt)" LABELS="$(cat pr-labels.txt)" \
+          bash scripts/agent-governance/work-item-guard.sh
+      displayName: Work-item reference
+      env:
+        WORK_ITEM_PREFIX: $(WORK_ITEM_PREFIX)
+
+    - bash: |
+        node scripts/agent-governance/closure-keys.mjs --mode=guard \
+          --branch="$(cat pr-branch.txt)" --title="$(cat pr-title.txt)" < pr-body.txt
+      displayName: Closure declaration
+      env:
+        WORK_ITEM_PREFIX: $(WORK_ITEM_PREFIX)
+
+    - bash: |
+        requested=full
+        grep -q '"ci-docs"' pr-labels.txt && requested=docs
+        grep -q '"ci-light"' pr-labels.txt && requested=light
+        tier="$(node scripts/agent-governance/ci-tier.mjs --requested="$requested" < changed-files.txt | sed -n 's/^tier=//p')"
+        echo "##vso[task.setvariable variable=CiTier;isOutput=true]$tier"
+      name: tier
+      displayName: CI tier
+
+    # Build validation doesn't re-run when a reviewer votes, so this step only reports at queue
+    # time. Enforce the second reader natively as well: branch policy "Require a minimum number of
+    # reviewers" with "Prohibit the most recent pusher from approving their own changes", plus
+    # path-filtered "Automatically included reviewers" (required) for the HIGH_RISK_PATHS folders.
+    - bash: |
+        [ -z "${HIGH_RISK_PATHS:-}" ] && unset HIGH_RISK_PATHS
+        AUTHOR_TYPE=User HEAD_REF="$(cat pr-branch.txt)" BODY="$(cat pr-body.txt)" \
+        CHANGED_FILES="$(cat changed-files.txt)" APPROVALS="$(cat pr-approvals.txt)" \
+          bash scripts/agent-governance/review-gate.sh
+      displayName: Second reader
+      env:
+        HIGH_RISK_PATHS: $(HIGH_RISK_PATHS)
+
+    - bash: node scripts/agent-governance/verify-rule-refs.mjs
+      displayName: Rule references
