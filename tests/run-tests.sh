@@ -72,6 +72,8 @@ expect 0 "refs/heads/ prefix stripped" wig refs/heads/feature/PROJ-12-x "t" '[]'
 expect N "no key" wig fix/login-thing "t" '[]'
 expect N "PROJ-0 rejected" wig fix/PROJ-0-x "t" '[]'
 expect N "key embedded in a word rejected" wig fix/XPROJ-12-x "t" '[]'
+expect N "key followed by letters rejected" wig feature/PROJ-12abc "t" '[]'
+expect N "key followed by underscore rejected" wig feature/PROJ-12_x "t" '[]'
 expect N "agent/* branch NOT exempt" wig agent/tidy-up "t" '[]'
 expect 0 "governance label (JSON)" wig docs/x "t" '["governance","docs"]'
 expect 0 "governance label (comma list)" wig docs/x "t" 'docs,governance'
@@ -84,7 +86,8 @@ echo "closure-keys.mjs"
 cl() { printf '%b' "$3" | node $G/closure-keys.mjs --mode="$1" --branch="$2" --title="t"; }
 expect 0 "Closes primary" cl guard feature/PROJ-318-x 'Closes PROJ-318\n\nbody'
 expect 0 "Part of primary" cl guard feature/PROJ-318-x 'Part of PROJ-318\n'
-expect 0 "Fixes / Resolves accepted" cl guard feature/PROJ-318-x 'Resolves PROJ-318\n'
+expect N "Fixes / Resolves are not closing verbs" cl guard feature/PROJ-318-x 'Resolves PROJ-318\n'
+expect N "title containing = keeps its key" bash -c "printf 'body\n' | node $G/closure-keys.mjs --mode=guard --branch=fix/x '--title=fix=x PROJ-12'"
 expect N "undeclared primary" cl guard feature/PROJ-318-x 'body only\n'
 expect N "both Closes and Part of" cl guard feature/PROJ-318-x 'Closes PROJ-318\nPart of PROJ-318\n'
 expect N "hyphenated secondary mention" cl guard feature/PROJ-318-x 'Closes PROJ-318\nsee PROJ-290\n'
@@ -104,20 +107,27 @@ expect N "bot author, no approvals" rg Bot feature/PROJ-1 "plain" "src/ui/button
 expect N "agent footer under a human account" rg User feature/PROJ-1 "Generated with an AI coding assistant" "README.md" 0
 expect N "agent/ branch" rg User agent/PROJ-1 "plain" "README.md" 0
 expect N "workflow change is high-risk" rg User feature/PROJ-1 "plain" ".github/workflows/ci.yml" 0
+expect N "Azure pipeline change is high-risk" rg User feature/PROJ-1 "plain" "pipelines/ci.yml" 0
+expect N "root azure-pipelines.yml is high-risk" rg User feature/PROJ-1 "plain" "azure-pipelines.yml" 0
+expect N "governance script change is high-risk" rg User feature/PROJ-1 "plain" "scripts/agent-governance/review-gate.sh" 0
 expect 0 "custom HIGH_RISK_PATHS" env HIGH_RISK_PATHS='^infra/' AUTHOR_TYPE=User HEAD_REF=f BODY=p CHANGED_FILES=migrations/1.sql APPROVALS=0 bash $G/review-gate.sh
 
 echo "count-approvals.mjs"
-GH_P1='[{"user":{"login":"dev-a","type":"User"},"state":"APPROVED","submitted_at":"2026-09-01T01:00:00Z"},
+GH_P1='[{"user":{"login":"dev-a","type":"User"},"state":"APPROVED","commit_id":"c1","submitted_at":"2026-09-01T01:00:00Z"},
 {"user":{"login":"dev-a","type":"User"},"state":"CHANGES_REQUESTED","submitted_at":"2026-09-01T02:00:00Z"},
-{"user":{"login":"dev-b","type":"User"},"state":"APPROVED","submitted_at":"2026-09-01T01:30:00Z"},
+{"user":{"login":"dev-b","type":"User"},"state":"APPROVED","commit_id":"c2","submitted_at":"2026-09-01T01:30:00Z"},
 {"user":{"login":"dev-b","type":"User"},"state":"COMMENTED","submitted_at":"2026-09-01T04:00:00Z"},
 {"user":{"login":"author","type":"User"},"state":"APPROVED","submitted_at":"2026-09-01T01:40:00Z"},
 {"user":{"login":"review-bot","type":"Bot"},"state":"APPROVED","submitted_at":"2026-09-01T01:50:00Z"}]'
-GH_P2='[{"user":{"login":"dev-c","type":"User"},"state":"APPROVED","submitted_at":"2026-09-01T03:00:00Z"},
+GH_P2='[{"user":{"login":"dev-c","type":"User"},"state":"APPROVED","commit_id":"c1","submitted_at":"2026-09-01T03:00:00Z"},
 {"user":{"login":"dev-d","type":"User"},"state":"APPROVED","submitted_at":"2026-09-01T03:00:00Z"},
 {"user":{"login":"dev-d","type":"User"},"state":"DISMISSED","submitted_at":"2026-09-01T05:00:00Z"}]'
 ca_gh() { printf '%s\n%s\n' "$GH_P1" "$GH_P2" | node $G/count-approvals.mjs --format=github --author=author; }
 expect_out 2 "github: latest review wins; author, bots, comments and dismissals excluded" ca_gh
+ca_gh_c() { printf '%s\n%s\n' "$GH_P1" "$GH_P2" | node $G/count-approvals.mjs --format=github --author=author --commit="$1"; }
+expect_out 1 "github --commit: only approvals on the head commit count (c2)" ca_gh_c c2
+expect_out 1 "github --commit: approvals on another commit are ignored (c1)" ca_gh_c c1
+expect_out 0 "github --commit: nothing counts on a brand-new commit" ca_gh_c c9
 expect_out 0 "github: empty review list" bash -c "echo '[]' | node $G/count-approvals.mjs --format=github --author=a"
 ADO='{"createdBy":{"id":"u1"},"reviewers":[{"id":"u1","vote":10},{"id":"u2","vote":10},{"id":"u3","vote":5},{"id":"u4","vote":-5},{"id":"g1","vote":10,"isContainer":true},{"id":"u5","vote":0}]}'
 expect_out 2 "ado: approved and approved-with-suggestions; creator and groups excluded" bash -c "echo '$ADO' | node $G/count-approvals.mjs --format=ado"
@@ -130,6 +140,10 @@ expect 0 "light tier" tier light 'src/x.ts\n'
 expect N "light tier touching auth" tier light 'src/auth/session.ts\n'
 expect N "light tier touching a lockfile" tier light 'bun.lock\n'
 expect N "light tier touching workflows" tier light '.github/workflows/ci.yml\n'
+expect N "light tier touching an Azure pipeline" tier light 'pipelines/agent-governance.yml\n'
+expect N "light tier touching governance scripts" tier light 'scripts/agent-governance/ci-tier.mjs\n'
+expect N "light tier touching a nested lockfile" tier light 'apps/web/bun.lock\n'
+expect N "docs tier touching a CI folder" tier docs '.github/workflows/README.md\n'
 expect 0 "full always fits" tier full 'src/auth/session.ts\n'
 expect N "unknown tier rejected" tier lite 'docs/a.md\n'
 expect_out "tier=full" "--no-fail downgrades to full" bash -c "printf 'src/auth/a.ts\n' | node $G/ci-tier.mjs --requested=light --no-fail"
@@ -176,7 +190,7 @@ printf 'jobs:\n  a:\n    steps:\n      - run: ls | head -1\n' > .github/workflow
 git add -A && git commit -qm "bad pipe"
 expect N "catches a pipe into head" bash scripts/pre-push.sh
 expect 0 "empty checks folder is a no-op" env PRE_PUSH_CHECKS_DIR=nothing-here bash scripts/pre-push.sh
-expect N "missing base ref falls back to last commit" env BASE_REF=origin/nope bash scripts/pre-push.sh
+expect N "missing base ref fails closed" env BASE_REF=origin/nope bash scripts/pre-push.sh
 git switch -q main
 
 echo

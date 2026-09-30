@@ -24,7 +24,7 @@ The pattern and its rationale: `docs/governed-agentic-delivery.md` in the agent 
 ## Before you finish
 1. Run the pre-push review (`scripts/pre-push.sh`).
 2. Check your diff against lessons marked BLOCKING in `.agents/rules/lessons/`.
-3. Write your handoff note: `memory-bank/sessions/<YYYY-MM-DD>-<KEY>-<slug>.md`.
+3. Write your handoff note: `memory-bank/sessions/<YYYY-MM-DD>-<HHMM>-<KEY>-<slug>.md`.
 
 ## Close the loop
 When you fix a review comment, ask whether a check in `pre-push-checks/` or a lesson in

@@ -7,6 +7,10 @@
 # The build service identity needs "Read" on pull requests (Project Settings > Repositories >
 # Security) for the REST calls below. "Allow scripts to access the OAuth token" must be on.
 #
+# Tamper resistance: the gate scripts run from the TARGET branch (a separate worktree), never from
+# the PR, so a PR can't weaken a gate that is judging it. Also protect scripts/agent-governance/ and
+# this file with a required, path-filtered "Automatically included reviewers" branch policy.
+#
 # Pipeline variables:
 #   WORK_ITEM_PREFIX  e.g. ABC for keys like ABC-123 (default PROJ). If you link Azure Boards
 #                     work items with AB#123 instead, keep the work-item guard and closure
@@ -41,11 +45,25 @@ stages:
     steps:
     - checkout: self
       fetchDepth: 0
-      persistCredentials: true
+      persistCredentials: false
 
     - task: NodeTool@0
       inputs:
         versionSpec: '20.x'
+
+    - bash: |
+        set -euo pipefail
+        TARGET="origin/$(System.PullRequest.TargetBranchName)"
+        git worktree add --detach .trusted "$TARGET"
+        if [ -d .trusted/scripts/agent-governance ]; then
+          echo "##vso[task.setvariable variable=GOV]$PWD/.trusted/scripts/agent-governance"
+        else
+          # Only while the kit is being introduced: the target has no scripts yet to trust.
+          echo "##vso[task.logissue type=warning]The target branch has no scripts/agent-governance/, so this run uses the PR's own copy. Merge the scripts before relying on this check."
+          echo "##vso[task.setvariable variable=GOV]$PWD/scripts/agent-governance"
+        fi
+        git diff --name-only "$TARGET"...HEAD > changed-files.txt
+      displayName: Select trusted gate scripts
 
     - bash: |
         set -euo pipefail
@@ -57,47 +75,58 @@ stages:
         jq -r '.sourceRefName'      pr.json > pr-branch.txt
         jq -r '[.value[].name]|tostring' labels.json > pr-labels.txt
         # Approvals: vote 10 (approved) or 5 (approved with suggestions), excluding the author.
-        node scripts/agent-governance/count-approvals.mjs --format=ado < pr.json > pr-approvals.txt
-        git diff --name-only "origin/$(System.PullRequest.TargetBranchName)"...HEAD > changed-files.txt
+        # Azure Repos votes aren't tied to a commit: turn on the branch policy
+        # "Reset all approval votes when there are new changes" so a new push needs a new approval.
+        node "$GOV/count-approvals.mjs" --format=ado < pr.json > pr-approvals.txt
       displayName: Read pull request details
       env:
         SYSTEM_ACCESSTOKEN: $(System.AccessToken)
 
     - bash: |
+        set -euo pipefail
         HEAD_REF="$(cat pr-branch.txt)" PR_TITLE="$(cat pr-title.txt)" LABELS="$(cat pr-labels.txt)" \
-          bash scripts/agent-governance/work-item-guard.sh
+          bash "$GOV/work-item-guard.sh"
       displayName: Work-item reference
       env:
         WORK_ITEM_PREFIX: $(WORK_ITEM_PREFIX)
 
     - bash: |
-        node scripts/agent-governance/closure-keys.mjs --mode=guard \
+        set -euo pipefail
+        node "$GOV/closure-keys.mjs" --mode=guard \
           --branch="$(cat pr-branch.txt)" --title="$(cat pr-title.txt)" < pr-body.txt
       displayName: Closure declaration
+      condition: succeededOrFailed()
       env:
         WORK_ITEM_PREFIX: $(WORK_ITEM_PREFIX)
 
     - bash: |
+        set -euo pipefail
         requested=full
-        grep -q '"ci-docs"' pr-labels.txt && requested=docs
-        grep -q '"ci-light"' pr-labels.txt && requested=light
-        tier="$(node scripts/agent-governance/ci-tier.mjs --requested="$requested" < changed-files.txt | sed -n 's/^tier=//p')"
+        if grep -q '"ci-docs"' pr-labels.txt; then requested=docs; fi
+        if grep -q '"ci-light"' pr-labels.txt; then requested=light; fi
+        # pipefail: a request that doesn't fit fails this step instead of quietly publishing "full".
+        out="$(node "$GOV/ci-tier.mjs" --requested="$requested" < changed-files.txt)"
+        tier="$(printf '%s\n' "$out" | sed -n 's/^tier=//p')"
         echo "##vso[task.setvariable variable=CiTier;isOutput=true]$tier"
       name: tier
       displayName: CI tier
+      condition: succeededOrFailed()
 
     # Build validation doesn't re-run when a reviewer votes, so this step only reports at queue
     # time. Enforce the second reader natively as well: branch policy "Require a minimum number of
     # reviewers" with "Prohibit the most recent pusher from approving their own changes", plus
     # path-filtered "Automatically included reviewers" (required) for the HIGH_RISK_PATHS folders.
     - bash: |
-        [ -z "${HIGH_RISK_PATHS:-}" ] && unset HIGH_RISK_PATHS
+        set -euo pipefail
+        if [ -z "${HIGH_RISK_PATHS:-}" ]; then unset HIGH_RISK_PATHS; fi
         AUTHOR_TYPE=User HEAD_REF="$(cat pr-branch.txt)" BODY="$(cat pr-body.txt)" \
         CHANGED_FILES="$(cat changed-files.txt)" APPROVALS="$(cat pr-approvals.txt)" \
-          bash scripts/agent-governance/review-gate.sh
+          bash "$GOV/review-gate.sh"
       displayName: Second reader
+      condition: succeededOrFailed()
       env:
         HIGH_RISK_PATHS: $(HIGH_RISK_PATHS)
 
-    - bash: node scripts/agent-governance/verify-rule-refs.mjs
+    - bash: node "$GOV/verify-rule-refs.mjs"
       displayName: Rule references
+      condition: succeededOrFailed()

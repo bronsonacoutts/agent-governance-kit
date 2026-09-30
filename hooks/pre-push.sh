@@ -14,12 +14,14 @@ cd "$(git rev-parse --show-toplevel)" || exit 1
 BASE_REF="${BASE_REF:-origin/main}"
 CHECKS_DIR="${PRE_PUSH_CHECKS_DIR:-pre-push-checks}"
 
-if BASE="$(git merge-base HEAD "$BASE_REF" 2>/dev/null)"; then
-  CHANGED_FILES="$(git diff --name-only "$BASE"...HEAD)"
-else
-  echo "pre-push: can't find $BASE_REF; checking files changed in the last commit only."
-  CHANGED_FILES="$(git diff --name-only HEAD~1 HEAD 2>/dev/null || true)"
+# Fail closed: without the base we can't see every commit on the branch, and checking only the
+# last commit would silently miss violations in earlier ones.
+if ! BASE="$(git merge-base HEAD "$BASE_REF" 2>/dev/null)"; then
+  echo "pre-push: can't find the base ref $BASE_REF, so the branch's full diff can't be checked."
+  echo "Run 'git fetch origin', or set BASE_REF to the branch this one targets."
+  exit 1
 fi
+CHANGED_FILES="$(git diff --name-only "$BASE"...HEAD)"
 export CHANGED_FILES
 
 shopt -s nullglob

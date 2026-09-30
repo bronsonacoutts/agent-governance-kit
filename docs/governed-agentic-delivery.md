@@ -596,7 +596,7 @@ One handoff file per session, shipped in the feature pull request. The old files
 > >>>>>>> main
 > ```
 >
-> Two unrelated changes conflicted on a notes file they didn't need to share. Now each writes `sessions/<date>-<key>-<slug>.md`, and nothing collides.
+> Two unrelated changes conflicted on a notes file they didn't need to share. Now each writes `sessions/<date>-<time>-<key>-<slug>.md`, and nothing collides.
 >
 
 ## What good looks like next
@@ -625,5 +625,32 @@ For a team beginning this journey, this order gives the most protection for the 
 - From day one, a check that every rule's claimed safeguard exists.
 
 The last item is the one we would move to the top if we started again.
+
+## Boilerplate kit
+
+The copy-ready files for every control in this paper are in this kit, with a 78-case test suite.
+Start with the [kit README](../README.md): it covers the adoption order, configuration and testing.
+
+| # | Boilerplate | File |
+|---|---|---|
+| B1 | Root agent instructions | [`AGENTS.md`](../templates/AGENTS.md) |
+| B2, B3 | Topic rule and lesson learned | [`agent-rule.md`](../templates/agent-rule.md) |
+| B4 | Session handoff note | [`session-handoff.md`](../templates/session-handoff.md) |
+| B5 | Pull request description | [`PULL_REQUEST_TEMPLATE.md`](../templates/PULL_REQUEST_TEMPLATE.md) |
+| B6 | Branch guard for agent edits | [`branch-guard.mjs`](../hooks/branch-guard.mjs) |
+| B7 | Repository health check | [`git-health.sh`](../hooks/git-health.sh) |
+| B8 | Pre-push runner and a check file | [`pre-push.sh`](../hooks/pre-push.sh), [`pre-push-checks/`](../hooks/pre-push-checks/) |
+| B9 | Work-item reference guard | [`work-item-guard.sh`](../scripts/work-item-guard.sh) |
+| B10 | Closure-declaration parser | [`closure-keys.mjs`](../scripts/closure-keys.mjs) |
+| B11 | Agent classifier and second-reader gate | [`review-gate.sh`](../scripts/review-gate.sh), [`count-approvals.mjs`](../scripts/count-approvals.mjs) |
+| B12 | CI tier classifier | [`ci-tier.mjs`](../scripts/ci-tier.mjs) |
+| B13 | Rule-reference verifier | [`verify-rule-refs.mjs`](../scripts/verify-rule-refs.mjs) |
+| B14 | Model routing config | [`model-routing.example.json`](../routing/model-routing.example.json) |
+| B15 | Professional review-queue entry | [`best-effort-decision.md`](../templates/best-effort-decision.md) |
+| B16 | Shared-resource coordination message | [`shared-resource-coordination.md`](../templates/shared-resource-coordination.md) |
+| B17 | Catalogue completeness check | [`check-catalogue.mjs`](../scripts/check-catalogue.mjs) |
+| CI | The gates as required checks | [GitHub Actions](../ci/github/agent-governance.yml) · [Azure Pipelines](../ci/azure-pipelines/agent-governance.yml) |
+
+An HTML version of this paper, with every boilerplate inline, is in [`whitepaper/index.html`](whitepaper/index.html).
 
 This paper describes one team's practice and is shared for discussion. Figures are approximate and drawn from a single month. Examples and boilerplates are generalised and use invented names and keys. The paper contains no product, customer or security-defect detail. The boilerplates may be freely adapted.

@@ -22,7 +22,9 @@
 #   /data/signed-records/   @org/domain-reviewers
 set -euo pipefail
 
-HIGH_RISK="${HIGH_RISK_PATHS:-^(migrations/|src/auth/|src/billing/|data/signed-records/|ci/workflows/|\.github/workflows/)}"
+# Default high-risk paths cover CI definitions for every supported platform and the governance
+# code itself: a change to a gate must never be able to skip that gate's own review.
+HIGH_RISK="${HIGH_RISK_PATHS:-^(migrations/|src/auth/|src/billing/|data/signed-records/|\.github/|ci/|pipelines/|\.azure-pipelines/|azure-pipelines\.ya?ml$|\.gitlab-ci\.yml$|scripts/agent-governance/|hooks/|CODEOWNERS$)}"
 AGENT_BRANCH="${AGENT_BRANCH_PATTERN:-^(agent|ai)/}"
 AGENT_FOOTER="${AGENT_FOOTER_PATTERN:-generated (with|by) }"
 
