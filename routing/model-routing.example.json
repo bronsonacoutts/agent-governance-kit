@@ -1,0 +1,20 @@
+{
+  "default_tier": "medium",
+  "effort_ceiling": "medium",
+  "tiers": {
+    "small":  { "use_for": "mechanical, fully specified work", "effort": "low" },
+    "medium": { "use_for": "day-to-day features, fixes, docs", "effort": "medium" },
+    "large":  { "use_for": "architecture, schema, auth, billing, high blast radius", "effort": "medium" }
+  },
+  "routes": [
+    { "match": "bulk rename|boilerplate|formatting",      "tier": "small",  "delegate": true },
+    { "match": "repo-wide search|file sweep|inventory",   "tier": "small",  "delegate": true },
+    { "match": "migration|access policy|auth|billing",    "tier": "large" },
+    { "match": "docs|single-file fix|test addition",      "tier": "medium" }
+  ],
+  "on_mismatch": "halt_and_ask",
+  "hard_bans": [
+    "no external or free-tier agent on security-relevant paths",
+    "no agent merges its own pull request"
+  ]
+}

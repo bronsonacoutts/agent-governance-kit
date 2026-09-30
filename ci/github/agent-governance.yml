@@ -1,0 +1,114 @@
+# Agent governance gates (GitHub Actions). Copy this kit's scripts/ folder into the consuming repo
+# as scripts/agent-governance/ first. Guide: docs/governed-agentic-delivery.md in the kit.
+#
+# Repository variables (Settings > Secrets and variables > Actions > Variables):
+#   WORK_ITEM_PREFIX  e.g. ABC for keys like ABC-123 (default PROJ)
+#   HIGH_RISK_PATHS   optional ERE for paths that always need a second reader
+#
+# Make each job a required status check on main. Values from the PR (title, body, branch) are
+# passed through env, never interpolated into the script: a PR title is attacker-controlled input.
+name: Agent Governance
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, edited, labeled, unlabeled, ready_for_review]
+  pull_request_review:
+    types: [submitted, dismissed]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: agent-governance-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  work-item-reference:
+    name: Work-item reference
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check branch or title carries a work-item key
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+          WORK_ITEM_PREFIX: ${{ vars.WORK_ITEM_PREFIX || 'PROJ' }}
+        run: bash scripts/agent-governance/work-item-guard.sh
+
+  closure-declaration:
+    name: Closure declaration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Check Closes / Part of lines
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          WORK_ITEM_PREFIX: ${{ vars.WORK_ITEM_PREFIX || 'PROJ' }}
+        run: |
+          printf '%s' "$PR_BODY" | node scripts/agent-governance/closure-keys.mjs \
+            --mode=guard --branch="$HEAD_REF" --title="$PR_TITLE"
+
+  ci-tier:
+    name: CI tier
+    runs-on: ubuntu-latest
+    outputs:
+      tier: ${{ steps.tier.outputs.tier }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Resolve requested tier against the diff
+        id: tier
+        env:
+          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          requested=full
+          echo "$LABELS" | grep -q '"ci-docs"' && requested=docs
+          echo "$LABELS" | grep -q '"ci-light"' && requested=light
+          git diff --name-only "$BASE_SHA"...HEAD \
+            | node scripts/agent-governance/ci-tier.mjs --requested="$requested" | tee -a "$GITHUB_OUTPUT"
+      # Downstream jobs can skip expensive suites with:  if: needs.ci-tier.outputs.tier == 'full'
+
+  second-reader:
+    name: Second reader
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Require an independent approval for agent-authored or high-risk changes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          AUTHOR_LOGIN: ${{ github.event.pull_request.user.login }}
+          AUTHOR_TYPE: ${{ github.event.pull_request.user.type }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          BODY: ${{ github.event.pull_request.body }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HIGH_RISK_PATHS: ${{ vars.HIGH_RISK_PATHS }}
+        run: |
+          [ -z "$HIGH_RISK_PATHS" ] && unset HIGH_RISK_PATHS
+          export CHANGED_FILES="$(git diff --name-only "$BASE_SHA"..."$HEAD_SHA")"
+          # Latest review per human reviewer, excluding the author; count approvals.
+          export APPROVALS="$(gh api --paginate "repos/$REPO/pulls/$PR_NUMBER/reviews" \
+            | node scripts/agent-governance/count-approvals.mjs --format=github --author="$AUTHOR_LOGIN")"
+          bash scripts/agent-governance/review-gate.sh
+
+  rule-references:
+    name: Rule references
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Every check a rule names must exist
+        run: node scripts/agent-governance/verify-rule-refs.mjs

@@ -1,0 +1,1174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Governed Agentic Delivery</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=Public+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: single reading column (~68ch) with a left-margin layer rail; tables and diagrams break out to a wider measure. */
+:root{
+  --bg:#f7f8f8; --surface:#ffffff; --ink:#1b2328; --ink-dim:#4f5b62; --ink-faint:#707c83;
+  --rule:#d9dfe2; --tint:#eef2f3;
+  --accent:#1f5f6b; --accent-soft:#dcebee;
+  --l1:#3d6b8a; --l2:#4f7a5a; --l3:#8a6a2f; --l4:#7a4f7a; --l5:#9a4a3a;
+  --display:'Newsreader', 'Iowan Old Style', Georgia, serif;
+  --body:'Public Sans', 'Segoe UI', system-ui, sans-serif;
+  --mono:'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#12171a; --surface:#182024; --ink:#e4eaec; --ink-dim:#aab6bb; --ink-faint:#8c989d;
+    --rule:#2c373c; --tint:#1d272b;
+    --accent:#7cc0cc; --accent-soft:#1d3237;
+    --l1:#8cb6d4; --l2:#93c49f; --l3:#d9b36b; --l4:#c89bc8; --l5:#e2917f;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12171a; --surface:#182024; --ink:#e4eaec; --ink-dim:#aab6bb; --ink-faint:#8c989d;
+  --rule:#2c373c; --tint:#1d272b;
+  --accent:#7cc0cc; --accent-soft:#1d3237;
+  --l1:#8cb6d4; --l2:#93c49f; --l3:#d9b36b; --l4:#c89bc8; --l5:#e2917f;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg); color:var(--ink); font-family:var(--body); font-size:16.5px; line-height:1.62; margin:0; padding-inline:16px;}
+.page{max-width:1000px; margin:0 auto; padding-block:56px 96px;}
+.col{max-width:68ch;}
+header.hero{border-bottom:1px solid var(--rule); padding-bottom:28px; margin-bottom:8px;}
+.eyebrow{font-family:var(--mono); font-size:.74rem; letter-spacing:.09em; text-transform:uppercase; color:var(--accent);}
+h1{font-family:var(--display); font-weight:600; font-size:clamp(2rem,5vw,3rem); line-height:1.08; margin:.35em 0 .4em; text-wrap:balance; max-width:22ch;}
+.standfirst{font-size:1.12rem; color:var(--ink-dim); max-width:60ch; margin:0;}
+.byline{font-family:var(--mono); font-size:.76rem; color:var(--ink-faint); margin-top:18px;}
+h2{font-family:var(--display); font-weight:600; font-size:1.65rem; line-height:1.2; margin:64px 0 14px; text-wrap:balance;}
+h3{font-size:1.02rem; font-weight:700; margin:30px 0 6px;}
+p{margin:0 0 14px;}
+ul,ol{margin:0 0 16px; padding-left:1.25em;}
+li{margin-bottom:6px;}
+li::marker{color:var(--ink-faint);}
+strong{font-weight:700;}
+a{color:var(--accent);}
+a:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+.toc{display:flex; flex-wrap:wrap; gap:6px 18px; font-size:.86rem; margin:22px 0 0; padding:0; list-style:none;}
+.toc a{color:var(--ink-dim); text-decoration:none; border-bottom:1px solid var(--rule);}
+.toc a:hover{color:var(--ink);}
+
+/* Key figures: the only tile row, because these numbers are part of the argument. */
+.figures{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1px; background:var(--rule); border:1px solid var(--rule); margin:28px 0 8px;}
+.fig{background:var(--surface); padding:16px 16px 14px;}
+.fig b{display:block; font-family:var(--display); font-size:1.9rem; font-weight:600; line-height:1; font-variant-numeric:tabular-nums;}
+.fig span{display:block; font-size:.8rem; color:var(--ink-dim); margin-top:8px; line-height:1.4;}
+@media (max-width:760px){.figures{grid-template-columns:repeat(2,minmax(0,1fr));}}
+
+/* Control stack: each layer has its own colour, reused in the diagram and the layer headings. */
+.stack{margin:24px 0; display:grid; gap:8px;}
+.layer{display:grid; grid-template-columns:2.4rem minmax(0,1fr); gap:14px; align-items:start; background:var(--surface); border:1px solid var(--rule); padding:14px 16px;}
+.layer .n{font-family:var(--mono); font-weight:500; font-size:.85rem; width:2.4rem; height:2.4rem; display:grid; place-items:center; border:2px solid currentColor; border-radius:50%;}
+.layer h4{margin:0 0 3px; font-size:1rem;}
+.layer p{margin:0; font-size:.92rem; color:var(--ink-dim);}
+.c1{color:var(--l1);} .c2{color:var(--l2);} .c3{color:var(--l3);} .c4{color:var(--l4);} .c5{color:var(--l5);}
+.layer-h{display:flex; align-items:baseline; gap:10px;}
+.layer-h .tag{font-family:var(--mono); font-size:.72rem; letter-spacing:.06em; text-transform:uppercase;}
+
+.wide{overflow-x:auto; margin:18px 0;}
+table{border-collapse:collapse; width:100%; font-size:.9rem; min-width:560px;}
+th,td{text-align:left; vertical-align:top; padding:9px 12px; border-bottom:1px solid var(--rule);}
+th{font-family:var(--mono); font-size:.7rem; font-weight:500; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-faint); white-space:nowrap;}
+td.num{font-variant-numeric:tabular-nums; white-space:nowrap;}
+
+.diagram{background:var(--surface); border:1px solid var(--rule); padding:18px; margin:18px 0; overflow-x:auto;}
+.note{font-size:.84rem; color:var(--ink-faint);}
+
+.pitfall{border-top:1px solid var(--rule); padding:16px 0 4px; display:grid; grid-template-columns:minmax(0,1fr); gap:4px;}
+.pitfall h3{margin:0;}
+.pitfall p{margin:0 0 8px;}
+.pitfall .fix{font-size:.92rem; color:var(--ink-dim);}
+.pitfall .fix::before{content:"What we changed: "; font-weight:700; color:var(--ink);}
+
+.check{list-style:none; padding:0;}
+.check li{padding-left:1.7em; position:relative;}
+.check li::before{content:""; position:absolute; left:0; top:.35em; width:.95em; height:.95em; border:1.5px solid var(--accent); border-radius:2px;}
+
+
+/* Worked examples: a left rule in the accent colour, not a card, so they read as asides. */
+.ex{border-left:3px solid var(--accent); background:var(--tint); padding:12px 16px; margin:12px 0 22px;}
+.ex-label{font-family:var(--mono); font-size:.68rem; letter-spacing:.09em; text-transform:uppercase; color:var(--accent); margin-bottom:4px;}
+.ex h4{margin:0 0 6px; font-size:.95rem;}
+.ex p, .ex ul{margin:0 0 8px; font-size:.93rem;}
+.ex-body{min-width:0;}
+.ex-cap{font-size:.84rem!important; color:var(--ink-dim);}
+pre.code{font-family:var(--mono); font-size:.8rem; line-height:1.55; background:var(--surface); color:var(--ink); border:1px solid var(--rule); padding:10px 12px; margin:6px 0 8px; overflow-x:auto; white-space:pre; tab-size:2;}
+.ex-note{font-size:.86rem; color:var(--ink-dim); border:1px dashed var(--rule); padding:10px 14px; margin:18px 0;}
+/* Boilerplate kit: each template is a numbered, copyable block. */
+.kit-index{columns:2 260px; column-gap:28px; font-size:.9rem; padding-left:1.2em;}
+.kit-index li{break-inside:avoid;}
+.bp{border-top:1px solid var(--rule); padding-top:18px; margin-top:26px; scroll-margin-top:16px;}
+.bp-head{display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:6px 12px;}
+.bp-head h3{margin:0; font-size:1.05rem;}
+.bp-id{font-family:var(--mono); font-size:.72rem; color:var(--accent); letter-spacing:.06em; margin-right:8px;}
+.bp-meta{font-family:var(--mono); font-size:.72rem; color:var(--ink-faint);}
+.bp p{font-size:.93rem; margin:8px 0;}
+.codewrap{position:relative;}
+.copy{position:absolute; top:6px; right:6px; font-family:var(--mono); font-size:.7rem; background:var(--bg); color:var(--ink-dim); border:1px solid var(--rule); padding:3px 8px; cursor:pointer;}
+.copy:hover{color:var(--ink); border-color:var(--ink-faint);}
+.copy:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+.codewrap pre.code{padding-top:30px;}
+footer{margin-top:72px; padding-top:18px; border-top:1px solid var(--rule); font-size:.82rem; color:var(--ink-faint);}
+@media (prefers-reduced-motion: reduce){*{scroll-behavior:auto!important;}}
+</style>
+</head>
+<body>
+<div class="page">
+<header class="hero">
+  <div class="eyebrow">Practice paper · engineering leadership</div>
+  <h1>Governing AI coding agents in a small, regulated-domain team</h1>
+  <p class="standfirst">How a two-person team ships most of its code through AI agents without losing traceability, review or legal defensibility: the controls we use, worked examples of each, what they caught, where they still fall short, and a boilerplate kit to adopt them.</p>
+  <div class="byline">September 2026 · based on about ten months of daily use</div>
+  <ul class="toc" aria-label="Contents">
+    <li><a href="#summary">Summary</a></li>
+    <li><a href="#context">Context</a></li>
+    <li><a href="#principles">Principles</a></li>
+    <li><a href="#stack">The control stack</a></li>
+    <li><a href="#supporting">Supporting practices</a></li>
+    <li><a href="#results">Results</a></li>
+    <li><a href="#pitfalls">Pitfalls</a></li>
+    <li><a href="#next">What good looks like next</a></li>
+    <li><a href="#start">Starting out</a></li>
+    <li><a href="#kit">Boilerplate kit</a></li>
+  </ul>
+</header>
+
+<section id="summary" class="col">
+<h2>Summary</h2>
+<p>AI coding agents are fast, tireless and literal. They follow whatever rule is in front of them, including a rule that is out of date, and they will happily produce a week's worth of change in an afternoon. In a domain where records have legal weight, that speed is only useful if every change can still be traced to a requirement, reviewed, and reconstructed later.</p>
+<p>Our answer is a layered set of controls. Each layer catches what the one before it misses:</p>
+<ol>
+<li><strong>Written rules</strong> that agents read at the start of every session.</li>
+<li><strong>Local hooks</strong> that run the same checks on the developer's machine before code leaves it.</li>
+<li><strong>CI gates</strong> that enforce the checks nobody can skip.</li>
+<li><strong>Human approval</strong> at the points where judgement matters.</li>
+<li><strong>An incident feedback loop</strong> that turns every repeated mistake into a new rule or, better, a new mechanical check.</li>
+</ol>
+<p>The result is high throughput with a clean audit trail. The main weakness is that written rules drift ahead of the checks that are supposed to back them. A rule that describes a safeguard which doesn't exist is worse than no rule, because agents trust it.</p>
+</section>
+
+<div class="figures" role="list">
+  <div class="fig" role="listitem"><b>~90</b><span>merged pull requests a week, two engineers</span></div>
+  <div class="fig" role="listitem"><b>1.6 h</b><span>median time from opening a pull request to merge</span></div>
+  <div class="fig" role="listitem"><b>~3 in 4</b><span>merged pull requests written by an agent session</span></div>
+  <div class="fig" role="listitem"><b>~86%</b><span>of merged pull requests carry a work-item key; the rest are labelled governance work</span></div>
+</div>
+<p class="note col">Figures are from one recent month. "Written by an agent session" means the pull request description carries the agent tool's generated footer; the real share is higher because not every session adds one.</p>
+
+<section id="context" class="col">
+<h2>Context</h2>
+<p>The product is a multi-tenant SaaS application for a regulated industry. Some of its records are statutory: once signed they must never change, corrections are new versions, and an auditor may ask years later who decided a piece of content was correct and when. The team is two engineers and no dedicated QA, security or operations staff.</p>
+<p>Almost all implementation work runs through AI coding agents. Engineers write the ticket, start a session, steer, review and merge. Several sessions often run at once on the same machine, and cheaper or free agents take mechanical work such as bulk renames and boilerplate.</p>
+<p>That set-up has three risks a conventional team doesn't face at the same scale:</p>
+<ul>
+<li><strong>Volume outruns review.</strong> Two people can't read ninety pull requests a week line by line.</li>
+<li><strong>Agents don't carry memory.</strong> Each session starts cold, so a lesson learned on Monday is gone on Tuesday unless it's written down somewhere the next session will read.</li>
+<li><strong>Parallel sessions collide.</strong> They share a machine, a test database, ports and the issue tracker.</li>
+</ul>
+<p class="ex-note">Throughout this paper, <strong>Example</strong> blocks show what a principle or control looks like in daily use. They are illustrative: ticket keys such as <code>PROJ-412</code>, file names, messages and data are invented or generalised. Copy-ready versions of the templates and scripts are in the <a href="#kit">boilerplate kit</a> at the end.</p>
+</section>
+
+<section id="principles" class="col">
+<h2>Principles</h2>
+<h3>1. Mechanical beats written</h3>
+<p>A rule an agent can ignore will eventually be ignored, usually by a session that read a different file first. Wherever a rule can be checked by a script, it should be, and the prose should point at the script. Prose is for judgement calls.</p>
+<div class="ex"><div class="ex-label">Example</div><div class="ex-body"><h4>A written rule becomes a check</h4><p>The rule "every new database table must have an access policy" lived in the rules folder for weeks. Agents mostly followed it. Then one session added a table in a migration that also renamed three others, and forgot the policy. A CI script now reads each new migration, lists the tables it creates, and fails if any has no matching policy in the same change:</p><pre class="code">FAIL  access-policy guard
+  migrations/0142_add_supplier_notes.sql creates table &quot;supplier_notes&quot;
+  but no policy for &quot;supplier_notes&quot; exists in this change.
+  Add one, or see rules/database.md#access-policies.</pre><p class="ex-cap">The prose rule still exists, but now it explains the check and points to it. It is no longer the only defence.</p></div></div>
+
+<h3>2. Check the same thing in two places</h3>
+<p>Every CI gate that can run locally also runs in a pre-push hook, using the same parser or script. The agent sees the failure in seconds, before a CI run is spent, and the CI gate remains the backstop for anyone who skipped the hook.</p>
+<div class="ex"><div class="ex-label">Example</div><div class="ex-body"><h4>One parser, two callers</h4><p>The script that decides which tickets a pull request closes is one file. CI runs it against the published description. The pre-push hook runs it against the description of the pull request already open for the branch. An agent that declares the same ticket two ways sees this on the laptop a minute before CI would:</p><pre class="code">pre-push: closure declaration
+  PROJ-318 is declared both &quot;Closes&quot; and &quot;Part of&quot;. Pick one.</pre><p class="ex-cap">See boilerplate <a href="#bp-closure">B10</a>.</p></div></div>
+
+<h3>3. No work without a work item</h3>
+<p>Every change that affects product behaviour carries a ticket key in its branch or title, and CI blocks the merge otherwise. For a regulated product this is the audit trail: requirement, change, review and release are linked without anyone assembling them afterwards.</p>
+<div class="ex"><div class="ex-label">Example</div><div class="ex-body"><h4>From a tester's bug report to the release that fixed it</h4><p>A tester reports that an expired sign-in link shows a blank page, ticket <code>PROJ-412</code>. The session works on <code>fix/PROJ-412-expired-link-message</code>, and the pull request title and description carry the key. Months later, an auditor asks when this was fixed and who reviewed it. One search answers it: the ticket, branch, pull request, review comments, CI run and release notes all share the key. A branch called <code>fix/login-thing</code> fails the build:</p><pre class="code">FAIL  work-item reference
+  No ticket key found in branch &quot;fix/login-thing&quot; or the PR title.
+  Rename the branch to fix/PROJ-&lt;n&gt;-..., or add the &quot;governance&quot; label
+  if this is internal tooling or docs work with no product ticket.</pre><p class="ex-cap">See boilerplate <a href="#bp-ticket">B9</a>.</p></div></div>
+
+<h3>4. Humans own irreversible and outward-facing actions</h3>
+<p>Agents can branch, commit, push and open pull requests. They can't merge their own work, re-trigger paid CI runs, or close tickets by inference. Those stay with a person, or with an explicit declaration a person reviews.</p>
+<div class="ex"><div class="ex-label">Example</div><div class="ex-body"><h4>The agent asks instead of acting</h4><p>An engineer tells a session "fix the review comments and push". After the push, the required build check is still pinned to the old commit. A general mandate would let the agent re-run CI itself. Under this rule it stops and says:</p><pre class="code">Pushed 2 commits addressing both review comments. The build check
+hasn&#x27;t re-run against the new head commit. Do you want me to trigger
+it now, or wait until you&#x27;ve looked at the changes?</pre><p class="ex-cap">Twenty seconds of the engineer's attention saves a pipeline run on a change that often gets another push anyway.</p></div></div>
+
+<h3>5. Every repeated mistake becomes a check</h3>
+<p>When a reviewer flags a problem, fixing that instance is only half the job. The standing order is to ask whether a script or a written lesson could have caught it, and to add it in the same change.</p>
+<div class="ex"><div class="ex-label">Example</div><div class="ex-body"><h4>A review comment turns into a check file</h4><p>The automated reviewer flags a CI step that pipes a command into <code>head -1</code>. With strict shell options, that hides a failure in the first command, so the step passes when it should fail. In the same pull request, the agent:</p><ul><li>fixes the step;</li><li>adds a check file that flags the pattern in any workflow;</li><li>writes a one-page lesson explaining why.</li></ul><pre class="code">lessons/PROJ-377-pipes-hide-failures-in-ci.md       (new)
+pre-push-checks/PROJ-377-pipe-hides-exit-code.sh   (new)
+ci/workflows/nightly.yml                            (fixed)</pre><p class="ex-cap">The next session to write that pattern gets the warning before a reviewer sees it.</p></div></div>
+
+<h3>6. Decide, record, queue</h3>
+<p>Some decisions need a professional (a lawyer, a domain specialist) whom a small team hasn't engaged yet. Agents don't park that work. They make the most conservative decision supported by the primary source they actually read, record the reasoning next to the work, and add the question to the one living review queue kept for that profession. "Flagged, not decided" is not an allowed end state. Claiming a sign-off that never happened is forbidden.</p>
+<div class="ex"><div class="ex-label">Example</div><div class="ex-body"><h4>A best-effort call, recorded and queued</h4><p>An industry guidance document says a control "should" be applied, and the agent must decide whether the product presents it as required. It reads the guidance itself, not a summary. It takes the stricter reading, because presenting a "should" as optional is the riskier mistake. It ships the content with its status recorded:</p><pre class="code">{
+  &quot;control&quot;: &quot;Mask account numbers on printed statements&quot;,
+  &quot;strength&quot;: &quot;treated as required&quot;,
+  &quot;basis&quot;: &quot;Guidance section 4.2 says &#x27;should&#x27;; stricter reading chosen&quot;,
+  &quot;review_status&quot;: &quot;best_effort&quot;,
+  &quot;reviewed_by&quot;: null
+}</pre><p class="ex-cap">It then adds an entry to the specialist review queue (boilerplate <a href="#bp-queue">B15</a>). <code>reviewed_by</code> stays empty until a real person with the credential signs off.</p></div></div>
+
+<h3>7. Configuration, not habit, chooses the model</h3>
+<p>Which model and effort level a task gets is written down per task type, and a session that finds itself on the wrong tier stops and asks. The default is the cheapest tier that does the job well. A harder task gets a stronger model or a tighter specification, not more reasoning effort.</p>
+<div class="ex"><div class="ex-label">Example</div><div class="ex-body"><h4>Routing written as config</h4><p>Tickets carry a routing tag. Before it starts, a session compares the tag with the model it is actually running on:</p><pre class="code">&gt; This ticket is tagged &quot;large&quot;, but this session is running on the
+&gt; &quot;medium&quot; tier. Stop here, or confirm you want to continue anyway?</pre><p class="ex-cap">The routing file itself is boilerplate <a href="#bp-routing">B14</a>.</p></div></div>
+
+</section>
+
+<section id="stack">
+<div class="col">
+<h2>The control stack</h2>
+<p>The five layers, from the cheapest and softest to the most expensive and firmest:</p>
+</div>
+<div class="stack">
+  <div class="layer"><div class="n c1">1</div><div><h4>Written rules</h4><p>A short root instruction file loaded into every session, pointing to a set of topic rule files and a running list of lessons learned. Each rule names the incident that prompted it.</p></div></div>
+  <div class="layer"><div class="n c2">2</div><div><h4>Local hooks</h4><p>Editor hooks block edits on the main branch. Pre-commit and pre-push hooks run repository health, lint, type checks and a modular set of review checks, one file per check.</p></div></div>
+  <div class="layer"><div class="n c3">3</div><div><h4>CI gates</h4><p>Required status checks for work-item references, closure declarations, an automated first-pass review, catalogue completeness, security scans and tests.</p></div></div>
+  <div class="layer"><div class="n c4">4</div><div><h4>Human approval</h4><p>A person decides to merge, to spend CI, and to change legally significant content. Pull requests opened by automation accounts can't merge without a human review.</p></div></div>
+  <div class="layer"><div class="n c5">5</div><div><h4>Incident feedback loop</h4><p>Review comments and incidents turn into new lessons and new checks in the same change, and each session leaves a handoff note for the next.</p></div></div>
+</div>
+
+<div class="diagram" aria-label="Lifecycle of one piece of agent work">
+<pre class="mermaid">
+flowchart LR
+  T["Work item<br/>with acceptance criteria"] --> B["Isolated branch<br/>and working copy"]
+  B --> S["Agent session<br/>reads rules and recent handoffs"]
+  S --> H["Local hooks<br/>same checks as CI"]
+  H --> P["Pull request<br/>declares closes or part-of"]
+  P --> R["Automated first-pass review"]
+  R --> G["CI gates"]
+  G --> A["Human decides<br/>to merge"]
+  A --> M["Merge"]
+  M --> J["Work item closed<br/>only if declared"]
+  M --> N["Handoff note<br/>for the next session"]
+  R -. "repeated finding" .-> L["New lesson or check"]
+  G -. "incident" .-> L
+  L -.-> S
+</pre>
+</div>
+
+<div class="col">
+<h3 class="layer-h"><span class="tag c1">Layer 1</span> Written rules</h3>
+<p>The root instruction file stays short and points outward. It holds the product goal, the scope boundaries, the legal non-negotiables and a list of landmines: things that look harmless in the code but aren't. Topic rules live in their own files: how to name database objects, when a diagram needs a plain-language twin, how to handle secrets, how to coordinate shared test resources. There were about thirty of these at last count.</p>
+<p>Two habits make this layer work:</p>
+<ul>
+<li><strong>Every rule carries its reason.</strong> A rule that says "never do X, because on this date X silently did Y" survives the next refactor. A bare "never do X" gets optimised away by the first agent that finds it inconvenient.</li>
+<li><strong>New lessons are one file each.</strong> A single shared lessons file conflicted in every parallel pull request. One file per lesson, named after the work item that produced it, conflicts with nothing.</li>
+</ul>
+<div class="ex"><div class="ex-label">Example</div><div class="ex-body"><h4>A rule that carries its reason</h4><p>A topic rule, lightly edited:</p><pre class="code">## Coordinate before using shared test resources
+
+Rule: before running the suite against the local database, using the
+preview port, or starting a long run against the shared test
+environment, tell other active sessions what you&#x27;ll use and for how
+long, and wait for a &quot;done&quot;.
+
+Why: two sessions once ran the suite at the same time. The second run&#x27;s
+setup wiped the first run&#x27;s fixtures, and the first session spent an
+hour chasing dozens of &quot;regressions&quot; that didn&#x27;t exist.
+
+Enforced by: nothing yet. This one relies on judgement.</pre><p class="ex-cap">The "Why" stops a later session deciding the rule is overcautious. The "Enforced by" line says honestly whether a machine backs it up.</p></div></div>
+
+
+<h3 class="layer-h"><span class="tag c2">Layer 2</span> Local hooks</h3>
+<p>An editor-level hook refuses file edits while the working copy is on the main branch, which forces every session onto a branch before its first change. Pre-commit checks repository health (see pitfall 5) and aborts with a one-line fix if something is wrong. The pre-push review is a small runner over a folder of independent checks, so adding a check is adding a file. Where a CI gate uses a parser, the local check imports the same parser, so the two can't disagree.</p>
+<p>The standing order is to re-run the whole local review before <em>every</em> push to an open pull request, not only the first. A fix pushed in answer to review feedback gets the same scrutiny as the original.</p>
+<div class="ex"><div class="ex-label">Example</div><div class="ex-body"><h4>What an agent sees on the laptop</h4><p>The editor hook refuses the first edit if the session is still on the main branch:</p><pre class="code">Blocked: this working copy is on &quot;main&quot;. Create a branch first:
+  git switch -c fix/PROJ-&lt;n&gt;-&lt;short-description&gt;</pre></div></div>
+<div class="ex"><div class="ex-label">Example</div><div class="ex-body"><h4>A pre-push run</h4><p>The runner prints each check and stops on any finding. Each check is a separate small file, so two pull requests that add checks at the same time don't conflict:</p><pre class="code">pre-push review
+  ok    type check and lint
+  ok    no operational files in the repo root
+  ok    no invisible control characters in docs
+  ok    new server functions have a handler and a test
+  FAIL  closure declaration: PROJ-501 is in the branch name but the
+        PR description has no &quot;Closes&quot; or &quot;Part of&quot; line for it
+push aborted</pre><p class="ex-cap">Boilerplates <a href="#bp-branch">B6</a> to <a href="#bp-prepush">B8</a>.</p></div></div>
+
+
+<h3 class="layer-h"><span class="tag c3">Layer 3</span> CI gates</h3>
+<ul>
+<li><strong>Work-item reference.</strong> Branch name or title must carry a ticket key. A labelled opt-out exists for genuinely internal governance work, and its use is visible.</li>
+<li><strong>Closure declaration.</strong> Every ticket named in the branch or title must appear on a line starting "Closes" or "Part of". Only "Closes" closes the ticket on merge. Any other ticket mentioned in the description must be written so the tracker's integration won't match it.</li>
+<li><strong>Automated first-pass review.</strong> A readiness gate waits, with a time limit, for the automated reviewer's comments before the expensive jobs start, so nobody pays for a full run on a change that is about to be revised.</li>
+<li><strong>Catalogue completeness.</strong> Scripts fail the build when a new server function, shared UI component or email template has no entry in its catalogue, or when a process diagram stops referencing a function that exists.</li>
+<li><strong>Security basics.</strong> Secret scanning, dependency and code scanning, and a check that stops a new server function being deployed without authentication.</li>
+<li><strong>Tiered CI.</strong> An author can ask for a lighter pipeline for docs-only or small changes. A classifier checks the request against the diff and fails the build, naming the files, if it doesn't fit.</li>
+</ul>
+<div class="ex"><div class="ex-label">Example</div><div class="ex-body"><h4>A pull request description the gates accept</h4><p>The primary ticket is declared on its own line. A ticket the change only relates to is written with a space instead of a hyphen, so the tracker integration won't act on it:</p><pre class="code">Closes PROJ-318
+
+Adds the export button to the weekly report screen.
+Follows the table design agreed in PROJ 290 (not closed by this PR).</pre><p class="ex-cap">On merge, PROJ-318 moves to Done and PROJ 290 is untouched. If the change finished only part of PROJ-318, the line would say <code>Part of PROJ-318</code> and the ticket would just get a comment.</p></div></div>
+<div class="ex"><div class="ex-label">Example</div><div class="ex-body"><h4>A lighter-CI request the classifier refuses</h4><p>An author asks for the "light" pipeline. The diff touches a file on the sign-in path, and security-relevant paths always get the full suite:</p><pre class="code">FAIL  CI tier
+  Requested &quot;light&quot;, but these files require the full suite:
+    src/auth/session-refresh.ts   (security-relevant path)
+  Remove the label or split the change.</pre></div></div>
+<div class="ex"><div class="ex-label">Example</div><div class="ex-body"><h4>A catalogue check</h4><p>An agent builds a date-range picker for one screen without checking the component catalogue. A date-range picker already exists. The build fails:</p><pre class="code">FAIL  component catalogue
+  ui/date-range-field.tsx is not listed in the component catalogue.
+  Add an entry, or reuse an existing component (search: &quot;date range&quot;).</pre><p class="ex-cap">The failure points the agent to the existing component, and the duplicate is deleted before review.</p></div></div>
+
+
+<h3 class="layer-h"><span class="tag c4">Layer 4</span> Human approval</h3>
+<p>A human merges. A human, or an agent told to for that specific pull request, re-triggers CI. Broad standing permission to "fix and push" doesn't extend to spending CI minutes. This rule exists because agents under a general mandate would re-run the pipeline after every small push and burn the runner budget before the change was ready.</p>
+<p>Content with legal or compliance weight stays in version-controlled data files, never in database rows an admin screen could change. Version history is the audit trail an auditor needs: who changed it, when, what the diff was, and who reviewed it.</p>
+<div class="ex"><div class="ex-label">Example</div><div class="ex-body"><h4>Why a label change goes through a pull request</h4><p>Someone wants to reword a category description. It looks like harmless display text, so an editable admin table seems simpler. But the text appears on documents people sign. In a reviewed data file, the change is recorded like this, permanently:</p><pre class="code">data/reference.json
+-  &quot;label&quot;: &quot;Sensitive data&quot;
++  &quot;label&quot;: &quot;Sensitive personal information (health, identity or financial)&quot;
+
+  author: agent session, requested by engineer A
+  reviewed and merged by: engineer A
+  linked ticket: PROJ-455</pre><p class="ex-cap">An admin screen would record only the new value. There would be no diff, no reviewer and no reason.</p></div></div>
+
+
+<h3 class="layer-h"><span class="tag c5">Layer 5</span> Incident feedback loop</h3>
+<p>Every incident with a lasting lesson produces three things in the same change: the fix, a lesson file that names the incident, and, where possible, a check. Tickets auto-closing on partial work, a CI trigger mangled by the shell into a file path, and a required check that silently never ran all went through this loop. Each is now caught by a script.</p>
+<p>Each session also writes a short handoff note (done, open, watch out for) and commits it on its own branch, so it ships with the code it describes. The next session reads the most recent notes, including those on branches not yet merged, before it starts.</p>
+<div class="ex"><div class="ex-label">Example</div><div class="ex-body"><h4>One incident, three outputs</h4><ul><li><strong>Incident:</strong> a CI re-run command posted from a Windows shell was silently rewritten into a file path. Nothing ran and nothing errored.</li><li><strong>Fix:</strong> the command now sets the variable that turns off path conversion.</li><li><strong>Lesson:</strong> a one-page file describing the symptom, so the next session recognises it.</li><li><strong>Check:</strong> the helper reads the posted comment back and fails if it isn't exactly what was sent.</li></ul></div></div>
+<div class="ex"><div class="ex-label">Example</div><div class="ex-body"><h4>A handoff note</h4><p>Committed on the feature branch and merged with the code (template <a href="#bp-handoff">B4</a>):</p><pre class="code"># PROJ-412: expired sign-in link message
+
+Branch: fix/PROJ-412-expired-link-message · PR: #871
+
+## Done
+- Expired and reused links now show a message and a &quot;send a new link&quot; button.
+
+## Open
+- PROJ-419: the same blank page appears when a link opens in another browser.
+
+## Watch out for
+- Another open branch (PROJ-405) also edits the sign-in screen.
+  Rebase after whichever merges first.</pre></div></div>
+
+</div>
+</section>
+
+<section id="supporting" class="col">
+<h2>Supporting practices</h2>
+<div class="wide">
+<table>
+<tr><th>Practice</th><th>What it does</th><th>Why we added it</th></tr>
+<tr><td>One working copy per session</td><td>Each agent session gets its own isolated working tree and branch. Working trees are removed only after merge or green CI.</td><td>Two sessions in one checkout overwrote each other's uncommitted work.</td></tr>
+<tr><td>Shared-resource etiquette</td><td>Before using the local database stack, the preview port or the shared remote test environment, a session lists its peers, announces what it will use and for how long, and waits for a "done".</td><td>A test suite that resets the database mid-run in another session produces failures that look like real regressions.</td></tr>
+<tr><td>Zero-trust secrets</td><td>No secrets in files. Commands that need secrets are wrapped by the secrets manager's CLI using the developer's existing login. Agents never mint tokens.</td><td>Per-session tokens leaked into transcripts and exhausted the manager's token quota.</td></tr>
+<tr><td>Tiered delegation</td><td>Mechanical sub-tasks go to a cheaper model or a free-tier agent. The main session keeps the reasoning and reviews the result instead of redoing it.</td><td>Cost. Most tokens are spent on searches and sweeps that need no judgement.</td></tr>
+<tr><td>One canonical design source</td><td>A single design project and design system. Agents check it exists before generating screens, and convert a screen to code only in the branch whose ticket needs it.</td><td>Bulk "convert everything" pull requests were too large to review and hid out-of-scope work.</td></tr>
+<tr><td>Canonical scope document</td><td>One document says what's in or out of scope, derived from tracker metadata and runtime feature flags. Other docs point to it rather than restating it.</td><td>Competing scope lists drifted apart, and agents followed whichever they read first.</td></tr>
+</table>
+</div>
+<div class="ex"><div class="ex-label">Example</div><div class="ex-body"><h4>Shared-resource etiquette in practice</h4><p>Sessions on the same machine can message each other. Before a full test run:</p><pre class="code">to: session &quot;invoice-export&quot;
+I&#x27;m about to run the full test suite against the local database
+(~12 min). It resets the app tables. Are you mid-run?
+
+reply: Running now, about 4 min left. I&#x27;ll say done.
+reply: done</pre></div></div>
+<div class="ex"><div class="ex-label">Example</div><div class="ex-body"><h4>Secrets without secrets in files</h4><p>A command that needs credentials is wrapped, never handed them:</p><pre class="code"># not this
+API_KEY=sk_live_... npm run sync
+
+# this: the secrets manager injects values from the developer&#x27;s own login
+secrets-cli run -- npm run sync</pre><p class="ex-cap">Agents never create a token, print a secret or write one to a file. If a command fails with "missing variable", it was run without the wrapper. The variable exists.</p></div></div>
+<div class="ex"><div class="ex-label">Example</div><div class="ex-body"><h4>Delegating down</h4><p>An expensive session needs every place an old function name is still used across 400 files. It gives that sweep to a small, cheap sub-agent with a precise brief: "list file and line for each use; make no edits". It reads the 20-line answer and does the careful part itself.</p></div></div>
+
+</section>
+
+<section id="results" class="col">
+<h2>Results</h2>
+<p>From one recent month of repository and tracker data:</p>
+<div class="wide">
+<table>
+<tr><th>Measure</th><th>Value</th><th>Reading</th></tr>
+<tr><td>Merged pull requests</td><td class="num">~390 in a month</td><td>About 90 a week, with two engineers.</td></tr>
+<tr><td>Median open to merge</td><td class="num">1.6 hours</td><td>Most changes are small and single-purpose, which is what makes them reviewable.</td></tr>
+<tr><td>Written by an agent session</td><td class="num">~75% of merged PRs</td><td>A lower bound: not every session adds its footer.</td></tr>
+<tr><td>Carry a work-item key</td><td class="num">~86% of merged PRs</td><td>Nearly all the rest used the visible governance opt-out. Enforced by CI rather than by discipline.</td></tr>
+<tr><td>Automated first-pass review</td><td class="num">~100% of merged PRs</td><td>Every pull request gets a machine reviewer before a human looks.</td></tr>
+<tr><td>Formal second human approval</td><td class="num">&lt;1% of merged PRs</td><td>The main gap. See pitfall 3.</td></tr>
+<tr><td>Deployment pipeline success</td><td class="num">~65% of runs</td><td>Improving, but the weakest number here.</td></tr>
+</table>
+</div>
+<p>An independent technical review rated this practice 4 out of 5, against about 2.5 for a typical company at the same stage, where AI assistants are usually used ad hoc with no written governance. The same review rated our security and test enforcement well below that, which is the subject of the next section.</p>
+</section>
+
+<section id="pitfalls" class="col">
+<h2>Pitfalls</h2>
+<p>These are the failures that taught us the most, roughly in order of how much they cost.</p>
+
+<div class="pitfall">
+<h3>1. Rules that describe safeguards that don't exist</h3>
+<p>A rule file told agents that a CI check would catch a class of database drift. No such check had ever been built. Other docs described a coverage threshold with no threshold configured, and a nightly monitor that had been failing silently for weeks. Agents read these rules, trusted the backstop, and skipped the manual care the rule was meant to make unnecessary.</p>
+<p class="fix">We're adding a check that every CI step, script and command a rule file names actually exists, and reconciling each documented-but-unenforced control by either building it or correcting the doc.</p>
+<div class="ex"><div class="ex-label">Example</div><div class="ex-body"><h4>What it looked like</h4><p>The rule, and an agent's reasoning after reading it:</p><pre class="code">rule:  &quot;If the schema snapshot drifts from the migrations, CI&#x27;s drift
+        guard will fail the build.&quot;
+
+agent: &quot;CI will catch any drift, so I won&#x27;t regenerate the snapshot
+        for this migration.&quot;
+
+CI:    (no such guard exists; the build passes; the snapshot is now stale)</pre><p class="ex-cap">Boilerplate <a href="#bp-verify">B13</a> is the check that would have caught this.</p></div></div>
+
+</div>
+
+<div class="pitfall">
+<h3>2. Convention drift across hundreds of sessions</h3>
+<p>Each session tends to copy the pattern in the file it's editing, not the one the standards describe. Over a few hundred sessions that produced three coexisting error-response shapes, partial adoption of shared middleware, and a documented form standard that almost nothing used.</p>
+<p class="fix">A convention now counts as real only when a lint rule or script enforces it, and "migrate what you touch" is written into the relevant rules so drift shrinks with each change instead of growing.</p>
+<div class="ex"><div class="ex-label">Example</div><div class="ex-body"><h4>Three shapes for the same thing</h4><p>Three server functions, each from a different session, returned errors three ways. Each had copied its nearest neighbour:</p><pre class="code">{ &quot;error&quot;: &quot;Not allowed&quot; }
+{ &quot;message&quot;: &quot;Something went wrong&quot;, &quot;detail&quot;: &quot;&lt;raw stack text&gt;&quot; }
+{ &quot;code&quot;: &quot;ACCESS_DENIED&quot;, &quot;message&quot;: &quot;You don&#x27;t have access to this report.&quot; }</pre><p class="ex-cap">Only the third follows the standard, and only it lets the app show a helpful message. A lint rule now flags the other two in any file a change touches.</p></div></div>
+
+</div>
+
+<div class="pitfall">
+<h3>3. The human gate that never fires</h3>
+<p>A gate that blocks automation-authored pull requests until a person approves is sound, but our agents push under the engineer's own identity, so the gate rarely applies. In practice the person who steered the session also merges it. Two authorization defects in the original database baseline went unnoticed for months because nobody else read those lines. A related trap: our ticket gate exempted agent-named branches as "bot work" while the approval gate treated the same branches as human work, so one class of pull request slipped past both.</p>
+<p class="fix">Planned: one shared definition of "agent-authored" used by every gate, and a required second reader, human or a separate review agent with a security brief, on any change touching access policies, authentication, billing or statutory records.</p>
+<div class="ex"><div class="ex-label">Example</div><div class="ex-body"><h4>Path-based review, sketched</h4><p>The planned gate keys on what changed, not on who pushed it:</p><pre class="code">second reader required when a change touches:
+  migrations/**            tables and access policies
+  src/auth/**              sign-in, sessions, roles
+  src/billing/**           plans and entitlements
+  data/signed-records/**   anything people sign</pre><p class="ex-cap">Boilerplate <a href="#bp-classify">B11</a>.</p></div></div>
+
+</div>
+
+<div class="pitfall">
+<h3>4. Automation that infers intent</h3>
+<p>The tracker integration closed any ticket whose key appeared in a merged branch name or description. Partial pull requests closed stories, and in one case an epic, before the work was finished.</p>
+<p class="fix">Closure now needs an explicit "Closes" line. Any other ticket mentioned is written so the integration can't match it. The same parser runs in CI and in the pre-push hook.</p>
+<div class="ex"><div class="ex-label">Example</div><div class="ex-body"><h4>How a partial change closed a story</h4><p>A story was planned as three pull requests. The first, on <code>feature/PROJ-210-report-table</code>, only added the database table. On merge, the integration found the key in the branch name and moved <code>PROJ-210</code> to Done. The story left the board with two thirds of the work still to do. Now that pull request has to say <code>Part of PROJ-210</code>, and only the third says <code>Closes PROJ-210</code>.</p></div></div>
+
+</div>
+
+<div class="pitfall">
+<h3>5. Parallel sessions on a shared working copy</h3>
+<p>Two processes writing repository metadata at the same time left it torn and unreadable. The milder version was a session finding its branch had been switched under it by another session.</p>
+<p class="fix">One working tree per session, a repository-health script that backs up and repairs the metadata, a pre-commit check that runs it, and a habit of confirming the current branch after any pause.</p>
+<div class="ex"><div class="ex-label">Example</div><div class="ex-body"><h4>The symptom and the fix</h4><p>What the engineer saw, and what the pre-commit check says instead now:</p><pre class="code">$ git status
+fatal: your current branch appears to be broken
+
+pre-commit: repository health
+  .git/HEAD is corrupted (trailing null bytes).
+  Repair it with: scripts/git-health.sh   (backs up the old file first)</pre><p class="ex-cap">Boilerplate <a href="#bp-health">B7</a>.</p></div></div>
+
+</div>
+
+<div class="pitfall">
+<h3>6. Cost runaway in CI</h3>
+<p>Agents iterating on a pull request pushed dozens of times a day, and every push re-ran the full pipeline. One branch triggered almost three hundred workflow runs in a single day.</p>
+<p class="fix">The full pipeline no longer runs on every push. Re-running it is a deliberate human action, and small changes can ask for a lighter tier that a classifier checks.</p>
+<div class="ex"><div class="ex-label">Example</div><div class="ex-body"><h4>The branch that set it off</h4><p>One pull request had 46 pushes in about eight and a half hours. Each push ran every gated workflow, close to 300 runs in all. Most pushes changed a line or two in answer to a review comment. Under the current rules the same work runs the full pipeline once when the pull request opens, then again only when a person decides it's ready.</p></div></div>
+
+</div>
+
+<div class="pitfall">
+<h3>7. Duplicate tickets from parallel sessions</h3>
+<p>Two sessions working on related problems each filed their own ticket for the same follow-up. Duplicates were then closed as "Done", which inflated completion figures.</p>
+<p class="fix">Agents search before they create, close duplicates with a Duplicate resolution, and record professional-review questions only on the two living queues that exist for them.</p>
+<div class="ex"><div class="ex-label">Example</div><div class="ex-body"><h4>Forty minutes apart</h4><p>Session A files "Add retry to the weekly export job". Forty minutes later, session B, working on a related timeout, files "Export job should retry on timeout". Both get picked up. One is later closed as Done with no work attached, and the completion figure counts it. The rule now: search the tracker for the key terms first, and comment on a match instead of filing a new ticket.</p></div></div>
+
+</div>
+
+<div class="pitfall">
+<h3>8. One shared handoff file</h3>
+<p>Every session prepended its notes to the same two files, so any two open pull requests conflicted.</p>
+<p class="fix">One handoff file per session, shipped in the feature pull request. The old files are frozen, and a pre-push check flags any new entry in them.</p>
+<div class="ex"><div class="ex-label">Example</div><div class="ex-body"><h4>The conflict every pull request had</h4><pre class="code">&lt;&lt;&lt;&lt;&lt;&lt;&lt; feature/PROJ-330
+## Current focus: report export (PROJ-330)
+=======
+## Current focus: sign-in messages (PROJ-412)
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; main</pre><p class="ex-cap">Two unrelated changes conflicted on a notes file they didn't need to share. Now each writes <code>sessions/&lt;date&gt;-&lt;key&gt;-&lt;slug&gt;.md</code>, and nothing collides.</p></div></div>
+
+</div>
+</section>
+
+<section id="next" class="col">
+<h2>What good looks like next</h2>
+<p>Moving from "strong with minor gaps" to "exemplary and verified" is mostly about closing the distance between what the rules say and what the machines check:</p>
+<ol>
+<li><strong>Rules are verified.</strong> Every check, script and command a rule names is confirmed to exist by CI on every change to the rules.</li>
+<li><strong>Conventions are lint rules.</strong> Any convention that matters has a rule that fails the build, and new code can't regress it.</li>
+<li><strong>Two readers on high-risk changes.</strong> Security-relevant paths need a second reviewer before merge, and the gate keys on the paths changed, not the author's identity.</li>
+<li><strong>Tracker hygiene is checked.</strong> Search-before-create, correct resolutions and no "Done" with open acceptance criteria are checked by automation, not left to good intentions.</li>
+<li><strong>The loop is measured.</strong> Count how many review findings repeat after a lesson exists for them. A falling repeat rate is the evidence that layer 5 works.</li>
+</ol>
+</section>
+
+<section id="start" class="col">
+<h2>Starting out</h2>
+<p>For a team beginning this journey, this order gives the most protection for the least effort:</p>
+<ul class="check">
+<li>A short root instruction file with the product goal, scope boundaries and your non-negotiables.</li>
+<li>An editor hook that blocks edits on the main branch, and one working tree per agent session.</li>
+<li>A CI gate that requires a work-item key, plus explicit closure declarations.</li>
+<li>No merge without a human, and no paid CI re-runs without a human.</li>
+<li>Secrets only through a manager's CLI, never in files or transcripts.</li>
+<li>A lessons folder, one file per lesson, each naming its incident.</li>
+<li>A pre-push runner over a folder of checks that reuse CI's own scripts.</li>
+<li>A per-session handoff note committed with the work.</li>
+<li>Written model routing, with cheaper agents for mechanical work.</li>
+<li>From day one, a check that every rule's claimed safeguard exists.</li>
+</ul>
+<p>The last item is the one we would move to the top if we started again.</p>
+</section>
+
+<section id="kit">
+<div class="col">
+<h2>Boilerplate kit</h2>
+<p>Starting points for each control in this paper. They are deliberately generic: rename the ticket prefix (<code>PROJ</code>), the paths and the CI syntax to match your stack. Every script here has a test suite of 65 pass-and-fail cases, run against a throwaway repository, and passes ShellCheck. The CI definitions that call them have not yet run on a live project. They are starting points, not hardened products: read each one before you adopt it, and keep the tests with it.</p>
+<p>Adopt them in the order of the "Starting out" list above. B1, B6, B9 and B13 give the most protection for the least effort.</p>
+<ol class="kit-index"><li><a href="#bp-root">B1 · Root agent instruction file</a></li><li><a href="#bp-rule">B2 · Topic rule</a></li><li><a href="#bp-lesson">B3 · Lesson learned</a></li><li><a href="#bp-handoff">B4 · Session handoff note</a></li><li><a href="#bp-pr">B5 · Pull request description</a></li><li><a href="#bp-branch">B6 · Branch guard for agent edits</a></li><li><a href="#bp-health">B7 · Repository health check</a></li><li><a href="#bp-prepush">B8 · Pre-push runner and a check file</a></li><li><a href="#bp-ticket">B9 · CI: work-item reference guard</a></li><li><a href="#bp-closure">B10 · Closure-declaration parser</a></li><li><a href="#bp-classify">B11 · Agent classifier and second-reader gate</a></li><li><a href="#bp-tier">B12 · CI tier classifier</a></li><li><a href="#bp-verify">B13 · Rule-reference verifier</a></li><li><a href="#bp-routing">B14 · Model routing config</a></li><li><a href="#bp-queue">B15 · Professional review-queue entry</a></li><li><a href="#bp-coord">B16 · Shared-resource coordination message</a></li><li><a href="#bp-catalogue">B17 · Catalogue completeness check</a></li></ol>
+</div>
+<div class="col">
+<div class="bp" id="bp-root"><div class="bp-head"><h3><span class="bp-id">B1</span>Root agent instruction file</h3><span class="bp-meta">AGENTS.md · Markdown</span></div><p>The one file every session loads. Keep it under two screens: goal, boundaries, non-negotiables, landmines, and pointers to everything else.</p><div class="codewrap"><button class="copy" type="button" aria-label="Copy B1">Copy</button><pre class="code"># Agent instructions
+
+Copy this to the repo root as `AGENTS.md` and fill it in. It&#x27;s loaded into every agent session, so keep it under two screens. Put detail in topic rules
+(`.agents/rules/*.md`, from [`agent-rule.md`](agent-rule.md)) and point to them.
+The pattern and its rationale: `docs/governed-agentic-delivery.md` in the agent governance kit.
+
+## Goal
+&lt;One sentence every feature decision is tested against.&gt;
+
+## Scope
+- Canonical scope lives in `docs/product/scope.md`. If this file disagrees, that one wins.
+- Build now: &lt;list&gt;
+- Deferred: &lt;list&gt;
+- Do not build: &lt;list&gt;
+
+## Non-negotiables
+- Never edit on the default branch. Create a branch first: `&lt;type&gt;/&lt;KEY&gt;-&lt;slug&gt;`.
+- Every change that affects product behaviour needs a work-item key in its branch or title.
+- Never merge, and never re-trigger CI, unless a person asked for that specific action.
+- Never put a secret in a file, a command line or a transcript. Wrap commands with the secrets
+  manager&#x27;s CLI (`&lt;secrets-cli&gt; run -- &lt;command&gt;`).
+- &lt;Domain rules, e.g. signed records are append-only; corrections are new versions.&gt;
+
+## Before you finish
+1. Run the pre-push review (`scripts/pre-push.sh`).
+2. Check your diff against lessons marked BLOCKING in `.agents/rules/lessons/`.
+3. Write your handoff note: `memory-bank/sessions/&lt;YYYY-MM-DD&gt;-&lt;KEY&gt;-&lt;slug&gt;.md`.
+
+## Close the loop
+When you fix a review comment, ask whether a check in `pre-push-checks/` or a lesson in
+`.agents/rules/lessons/` would have caught it. If so, add it in the same change.
+
+## Decisions that need a professional
+Decide on the most conservative reading of the primary source you actually read. Record the
+reasoning next to the work and add an entry to that profession&#x27;s review queue
+([`best-effort-decision.md`](best-effort-decision.md)). Never record a sign-off
+that didn&#x27;t happen.
+
+## Shared resources
+Before using anything machine-wide (local database stack, a fixed dev port, a shared remote test
+environment), coordinate with other active sessions
+([`shared-resource-coordination.md`](shared-resource-coordination.md)).
+
+## Landmines
+- &lt;Something that looks harmless but isn&#x27;t, and what to do instead.&gt;
+
+## Where things are
+- Topic rules: `.agents/rules/*.md` · Lessons: `.agents/rules/lessons/*.md` (one file each)
+- Model routing: `model-routing.json` (see `routing/model-routing.example.json` in the kit)
+- Handoff notes: `memory-bank/sessions/` (read the newest few before starting)</pre></div></div>
+<div class="bp" id="bp-rule"><div class="bp-head"><h3><span class="bp-id">B2</span>Topic rule</h3><span class="bp-meta">rules/<topic>.md · Markdown</span></div><p>One file per topic. The "Why" and "Enforced by" fields are the point: they stop a rule being optimised away and make its backing check visible.</p><div class="codewrap"><button class="copy" type="button" aria-label="Copy B2">Copy</button><pre class="code">---
+topic: &lt;short name&gt;
+applies_to: &lt;paths or task types&gt;
+---
+
+# &lt;Rule as an imperative sentence&gt;
+
+## Rule
+&lt;What to do, in one to three sentences.&gt;
+
+## Why
+&lt;The incident or risk that prompted it: what happened, what it cost.
+Link the ticket.&gt;
+
+## Enforced by
+&lt;Script path and CI job name, or &quot;nothing yet: judgement&quot;. If you name
+a check here, the rule-reference verifier (B13) confirms it exists.&gt;
+
+## How to comply
+1. &lt;Step&gt;
+2. &lt;Step&gt;
+
+## Exceptions
+&lt;When the rule doesn&#x27;t apply, and who can grant an exception.&gt;</pre></div></div>
+<div class="bp" id="bp-lesson"><div class="bp-head"><h3><span class="bp-id">B3</span>Lesson learned</h3><span class="bp-meta">rules/lessons/<KEY>-<slug>.md · Markdown</span></div><p>Written in the same change as the fix. One lesson per file, named for the ticket, so parallel pull requests never conflict.</p><div class="codewrap"><button class="copy" type="button" aria-label="Copy B3">Copy</button><pre class="code">---
+severity: BLOCKING | BUILD RISK | LOGIC | HYGIENE
+ticket: &lt;KEY&gt;
+date: &lt;YYYY-MM-DD&gt;
+check: &lt;pre-push-checks/&lt;file&gt; | CI job | none&gt;
+---
+
+# &lt;What went wrong, as a short title&gt;
+
+## Symptom
+&lt;What someone would actually see. Copy the error text if there is one.&gt;
+
+## Cause
+&lt;Why it happened.&gt;
+
+## Do this instead
+&lt;The correct pattern, with a short code example.&gt;
+
+## How it&#x27;s caught now
+&lt;The check that flags it, or why no mechanical check is possible.&gt;</pre></div></div>
+<div class="bp" id="bp-handoff"><div class="bp-head"><h3><span class="bp-id">B4</span>Session handoff note</h3><span class="bp-meta">sessions/<date>-<KEY>-<slug>.md · Markdown</span></div><p>Committed on the feature branch, so it merges with the code it describes. The next session reads the newest notes, including notes on open branches.</p><div class="codewrap"><button class="copy" type="button" aria-label="Copy B4">Copy</button><pre class="code"># &lt;KEY&gt;: &lt;short title&gt;
+
+Branch: `&lt;type&gt;/&lt;KEY&gt;-&lt;slug&gt;` · PR: &lt;#number or &quot;not opened yet&quot;&gt;
+
+## Done
+- &lt;What changed, in outcome terms.&gt;
+
+## Open / blocked
+- &lt;Follow-up, with its ticket key.&gt;
+
+## Watch out for
+- &lt;Parallel branches touching the same files, shared resources in use,
+  migrations to re-run after a merge, anything surprising.&gt;</pre></div></div>
+<div class="bp" id="bp-pr"><div class="bp-head"><h3><span class="bp-id">B5</span>Pull request description</h3><span class="bp-meta">PR template · Markdown</span></div><p>Put this in your repository's pull request template. The first line is machine-read by the closure parser (B10).</p><div class="codewrap"><button class="copy" type="button" aria-label="Copy B5">Copy</button><pre class="code">Closes &lt;KEY&gt;
+&lt;!-- or: Part of &lt;KEY&gt;   (work remains; the ticket gets a comment only) --&gt;
+&lt;!-- Mention any other ticket with a space, e.g. &quot;PROJ 290&quot;, so the
+     tracker integration doesn&#x27;t act on it. --&gt;
+
+## What
+- &lt;Change, in outcome terms.&gt;
+
+## Why
+- &lt;Requirement or incident. Link the ticket.&gt;
+
+## Risk
+- Touches security-relevant paths: yes / no
+- Needs a second reader: yes / no (see B11)
+- Migration or data change: yes / no
+
+## Checks run
+- [ ] Pre-push review
+- [ ] Type check and lint
+- [ ] Tests for changed logic
+- [ ] Docs or catalogue updated, or not needed because: &lt;reason&gt;
+
+## New rule, lesson or check added
+- &lt;File, or &quot;none: this was a one-off because ...&quot;&gt;</pre></div></div>
+<div class="bp" id="bp-branch"><div class="bp-head"><h3><span class="bp-id">B6</span>Branch guard for agent edits</h3><span class="bp-meta">scripts/branch-guard.mjs · Node</span></div><p>Wire this to your agent tool's pre-edit hook. A non-zero exit blocks the edit. It forces every session onto a branch before its first change.</p><div class="codewrap"><button class="copy" type="button" aria-label="Copy B6">Copy</button><pre class="code">#!/usr/bin/env node
+// Blocks file edits while the working copy is on a protected branch.
+import { execSync } from &quot;node:child_process&quot;;
+
+const PROTECTED = new Set([&quot;main&quot;, &quot;master&quot;, &quot;release&quot;]);
+
+let branch = &quot;&quot;;
+try {
+  branch = execSync(&quot;git rev-parse --abbrev-ref HEAD&quot;, { encoding: &quot;utf8&quot; }).trim();
+} catch {
+  process.exit(0); // not a git checkout: nothing to guard
+}
+
+if (PROTECTED.has(branch)) {
+  console.error(
+    `Blocked: this working copy is on &quot;${branch}&quot;. Create a branch first:\n` +
+    `  git switch -c &lt;type&gt;/&lt;KEY&gt;-&lt;short-description&gt;`
+  );
+  process.exit(2);
+}</pre></div></div>
+<div class="bp" id="bp-health"><div class="bp-head"><h3><span class="bp-id">B7</span>Repository health check</h3><span class="bp-meta">scripts/git-health.sh · Bash</span></div><p>Run with <code>--check</code> from the pre-commit hook. Run it without flags to repair. It catches the torn-metadata failure that concurrent writers cause.</p><div class="codewrap"><button class="copy" type="button" aria-label="Copy B7">Copy</button><pre class="code">#!/usr/bin/env bash
+# Detects (and optionally repairs) a corrupted .git/HEAD.
+set -euo pipefail
+MODE=&quot;${1:-repair}&quot;
+GIT_DIR=&quot;$(git rev-parse --git-dir 2&gt;/dev/null || echo .git)&quot;
+HEAD_FILE=&quot;$GIT_DIR/HEAD&quot;
+
+if [ -f &quot;$GIT_DIR/index.lock&quot; ]; then
+  echo &quot;git-health: stale $GIT_DIR/index.lock found. Is another process running git?&quot;
+fi
+
+# Healthy means: one valid line and no NUL bytes anywhere in the file.
+CLEAN=&quot;$(tr -d &#x27;\000\r&#x27; &lt; &quot;$HEAD_FILE&quot; | head -1)&quot;
+NULS=&quot;$(tr -cd &#x27;\000&#x27; &lt; &quot;$HEAD_FILE&quot; | wc -c)&quot;
+if [ &quot;$NULS&quot; -gt 0 ] || ! [[ &quot;$CLEAN&quot; =~ ^(ref:\ refs/heads/.+|[0-9a-f]{40})$ ]]; then
+  if [ &quot;$MODE&quot; = &quot;--check&quot; ]; then
+    echo &quot;git-health: $HEAD_FILE is corrupted. Repair it with: scripts/git-health.sh&quot;
+    exit 1
+  fi
+  if ! [[ &quot;$CLEAN&quot; =~ ^(ref:\ refs/heads/.+|[0-9a-f]{40})$ ]]; then
+    echo &quot;git-health: no valid ref left in $HEAD_FILE. Fix it by hand, e.g.:&quot;
+    echo &quot;  echo &#x27;ref: refs/heads/main&#x27; &gt; $HEAD_FILE&quot;
+    exit 1
+  fi
+  cp &quot;$HEAD_FILE&quot; &quot;$HEAD_FILE.bak.$(date +%s)&quot;
+  printf &#x27;%s\n&#x27; &quot;$CLEAN&quot; &gt; &quot;$HEAD_FILE&quot;
+  echo &quot;git-health: rewrote $HEAD_FILE (backup kept).&quot;
+else
+  echo &quot;git-health: HEAD OK ($CLEAN)&quot;
+fi</pre></div></div>
+<div class="bp" id="bp-prepush"><div class="bp-head"><h3><span class="bp-id">B8</span>Pre-push runner and a check file</h3><span class="bp-meta">scripts/pre-push.sh + pre-push-checks/*.sh · Bash</span></div><p>The runner stays frozen. Each new check is a new file named for its ticket, so adding checks never conflicts. Call the same scripts CI calls.</p><div class="codewrap"><button class="copy" type="button" aria-label="Copy B8">Copy</button><pre class="code">#!/usr/bin/env bash
+# Pre-push review runner. Runs every check file in the checks folder, in name order, and aborts the
+# push on any failure. Keep this runner frozen: a new check is a new file (named for the work item
+# that prompted it), so parallel pull requests that each add a check never conflict.
+#
+# Each check is a bash script that exits non-zero with a human-readable message on a finding. It
+# receives CHANGED_FILES (newline-separated paths changed on this branch vs the base).
+#
+# Env: BASE_REF (default origin/main), PRE_PUSH_CHECKS_DIR (default pre-push-checks)
+# Wire from .husky/pre-push (or any hook manager):  bash scripts/pre-push.sh
+set -uo pipefail
+cd &quot;$(git rev-parse --show-toplevel)&quot; || exit 1
+
+BASE_REF=&quot;${BASE_REF:-origin/main}&quot;
+CHECKS_DIR=&quot;${PRE_PUSH_CHECKS_DIR:-pre-push-checks}&quot;
+
+if BASE=&quot;$(git merge-base HEAD &quot;$BASE_REF&quot; 2&gt;/dev/null)&quot;; then
+  CHANGED_FILES=&quot;$(git diff --name-only &quot;$BASE&quot;...HEAD)&quot;
+else
+  echo &quot;pre-push: can&#x27;t find $BASE_REF; checking files changed in the last commit only.&quot;
+  CHANGED_FILES=&quot;$(git diff --name-only HEAD~1 HEAD 2&gt;/dev/null || true)&quot;
+fi
+export CHANGED_FILES
+
+shopt -s nullglob
+checks=(&quot;$CHECKS_DIR&quot;/*.sh)
+if [ &quot;${#checks[@]}&quot; -eq 0 ]; then
+  echo &quot;pre-push: no checks in $CHECKS_DIR/. Nothing to run.&quot;
+  exit 0
+fi
+mapfile -t checks &lt; &lt;(printf &#x27;%s\n&#x27; &quot;${checks[@]}&quot; | LC_ALL=C sort)
+
+FAILED=0
+echo &quot;pre-push review&quot;
+for check in &quot;${checks[@]}&quot;; do
+  name=&quot;$(basename &quot;$check&quot; .sh)&quot;
+  if output=&quot;$(bash &quot;$check&quot; 2&gt;&amp;1)&quot;; then
+    echo &quot;  ok    $name&quot;
+  else
+    echo &quot;  FAIL  $name&quot;
+    printf &#x27;%s\n&#x27; &quot;$output&quot; | sed &#x27;s/^/        /&#x27;
+    FAILED=1
+  fi
+done
+
+if [ &quot;$FAILED&quot; -eq 0 ]; then echo &quot;No issues found.&quot;; else echo &quot;push aborted&quot;; exit 1; fi
+
+# ------------------------------------------------------------------
+# pre-push-checks/example-pipe-hides-exit-code.sh (a check file)
+# ------------------------------------------------------------------
+#!/usr/bin/env bash
+# Example pre-push check. Name real checks after the work item that prompted them,
+# e.g. PROJ-377-pipe-hides-exit-code.sh, and link the matching lesson file.
+#
+# Flags &quot;cmd | head&quot; in CI definitions: with strict shell options the step can pass while the first
+# command failed, so a broken check reports green.
+hits=&quot;$(printf &#x27;%s\n&#x27; &quot;${CHANGED_FILES:-}&quot; \
+  | grep -E &#x27;^(\.github/workflows|ci/workflows|pipelines)/.*\.ya?ml$&#x27; \
+  | while read -r f; do [ -f &quot;$f&quot; ] &amp;&amp; grep -nHE &#x27;\|\s*head\b&#x27; &quot;$f&quot;; done || true)&quot;
+if [ -n &quot;$hits&quot; ]; then
+  echo &quot;Piping into head hides the first command&#x27;s exit code:&quot;
+  echo &quot;$hits&quot;
+  echo &quot;Capture the output first, then take the first line.&quot;
+  exit 1
+fi</pre></div></div>
+<div class="bp" id="bp-ticket"><div class="bp-head"><h3><span class="bp-id">B9</span>CI: work-item reference guard</h3><span class="bp-meta">scripts/work-item-guard.sh · Bash, called from CI</span></div><p>Blocks a merge unless the branch or title carries a real ticket key. The opt-out is a visible label, not a branch-name pattern. Pattern-based opt-outs are how agent branches slipped past this gate. It's a script, so GitHub Actions and Azure Pipelines can both call it.</p><div class="codewrap"><button class="copy" type="button" aria-label="Copy B9">Copy</button><pre class="code">#!/usr/bin/env bash
+# Work-item reference guard: blocks a merge unless the branch name or PR title carries a real
+# work-item key. The only opt-out is a visible label. Don&#x27;t exempt branch-name patterns such as
+# agent/* or ai/*: that&#x27;s how agent pull requests slip past both this gate and the review gate.
+#
+# Env:
+#   HEAD_REF          source branch (refs/heads/ prefix is stripped)
+#   PR_TITLE          pull request title
+#   LABELS            PR labels in any text form (JSON array, comma list, ...)
+#   WORK_ITEM_PREFIX  key prefix, default PROJ  (keys look like PROJ-123)
+#   OPT_OUT_LABEL     default &quot;governance&quot;  (internal tooling/docs work with no product ticket)
+#   AUTOMATION_BRANCHES  ERE for dependency/release bots, default &#x27;^(dependabot|renovate)/|^release-please--&#x27;
+set -euo pipefail
+
+HEAD_REF=&quot;${HEAD_REF#refs/heads/}&quot;
+PREFIX=&quot;$(printf &#x27;%s&#x27; &quot;${WORK_ITEM_PREFIX:-PROJ}&quot; | tr -cd &#x27;A-Za-z0-9&#x27;)&quot;
+KEY=&quot;(^|[^A-Za-z0-9])${PREFIX}-[1-9][0-9]*([^0-9]|$)&quot;
+OPT_OUT=&quot;${OPT_OUT_LABEL:-governance}&quot;
+AUTOMATION=&quot;${AUTOMATION_BRANCHES:-^(dependabot|renovate)/|^release-please--}&quot;
+
+if printf &#x27;%s&#x27; &quot;$HEAD_REF&quot; | grep -qE &quot;$AUTOMATION&quot;; then
+  echo &quot;Automated dependency/release branch ($HEAD_REF): no work item required.&quot;; exit 0
+fi
+if printf &#x27;%s&#x27; &quot;${LABELS:-}&quot; | grep -qE &quot;(^|[^A-Za-z0-9_-])${OPT_OUT}([^A-Za-z0-9_-]|$)&quot;; then
+  echo &quot;Labelled &#x27;$OPT_OUT&#x27;: no product work item required.&quot;; exit 0
+fi
+if printf &#x27;%s&#x27; &quot;$HEAD_REF&quot; | grep -qE &quot;$KEY&quot; || printf &#x27;%s&#x27; &quot;${PR_TITLE:-}&quot; | grep -qE &quot;$KEY&quot;; then
+  echo &quot;Work-item key found: OK&quot;; exit 0
+fi
+
+echo &quot;::error::No ${PREFIX}-&lt;n&gt; key in branch &#x27;$HEAD_REF&#x27; or the PR title.&quot;
+echo &quot;Rename the branch to &lt;type&gt;/${PREFIX}-&lt;n&gt;-&lt;slug&gt;, or add the &#x27;$OPT_OUT&#x27; label if this is&quot;
+echo &quot;internal tooling or docs work with no product work item.&quot;
+exit 1
+
+# ------------------------------------------------------------------
+# CI step that calls it
+# ------------------------------------------------------------------
+# In CI (GitHub Actions). Pass PR values through env, never ${{ }} inside run:
+- name: Work-item reference
+  env:
+    HEAD_REF: ${{ github.event.pull_request.head.ref }}
+    PR_TITLE: ${{ github.event.pull_request.title }}
+    LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+    WORK_ITEM_PREFIX: ${{ vars.WORK_ITEM_PREFIX || &#x27;PROJ&#x27; }}
+  run: bash scripts/agent-governance/work-item-guard.sh</pre></div><p>Pass values in through <code>env</code>, never by interpolating <code>${{ }}</code> straight into the script. A pull request title is user input, and interpolating it is a script-injection hole.</p></div>
+<div class="bp" id="bp-closure"><div class="bp-head"><h3><span class="bp-id">B10</span>Closure-declaration parser</h3><span class="bp-meta">scripts/closure-keys.mjs · Node</span></div><p>One parser, used by CI in guard mode, by the pre-push hook, and by the post-merge job that transitions tickets. Only an explicit "Closes" line closes anything.</p><div class="codewrap"><button class="copy" type="button" aria-label="Copy B10">Copy</button><pre class="code">#!/usr/bin/env node
+// Closure-declaration parser: decides which work items a pull request closes.
+// One parser for every caller: the CI guard, the pre-push hook and the post-merge job.
+//
+// usage: closure-keys.mjs --mode=guard|close --branch=&lt;ref&gt; --title=&lt;t&gt; &lt; body.md
+//   guard  exit 1 with a message per problem, exit 0 if the declaration is valid
+//   close  print {&quot;close&quot;:[...],&quot;comment&quot;:[...]} and always exit 0
+//
+// Work-item keys look like &lt;PREFIX&gt;-&lt;n&gt;. Set WORK_ITEM_PREFIX (default &quot;PROJ&quot;) for your tracker
+// project, e.g. WORK_ITEM_PREFIX=ABC. Rules:
+//   - every key in the branch name or title needs a body line starting &quot;Closes|Fixes|Resolves &lt;KEY&gt;&quot;
+//     or &quot;Part of &lt;KEY&gt;&quot;, never both;
+//   - only &quot;Closes&quot; lines close a work item on merge;
+//   - any other hyphenated key in the body is an error: write it &quot;&lt;PREFIX&gt; &lt;n&gt;&quot; so the tracker&#x27;s
+//     integration doesn&#x27;t act on a mention.
+const args = Object.fromEntries(process.argv.slice(2).map(a =&gt; a.replace(/^--/, &quot;&quot;).split(&quot;=&quot;)));
+const body = await new Promise(r =&gt; { let s = &quot;&quot;; process.stdin.on(&quot;data&quot;, d =&gt; s += d).on(&quot;end&quot;, () =&gt; r(s)); });
+
+const PREFIX = (process.env.WORK_ITEM_PREFIX || &quot;PROJ&quot;).replace(/[^A-Za-z0-9]/g, &quot;&quot;);
+const KEY_SRC = `${PREFIX}-[1-9]\\d*`;
+const KEY = new RegExp(`\\b${KEY_SRC}\\b`, &quot;g&quot;);
+const DECL = new RegExp(`^\\s*(Closes|Fixes|Resolves|Part of)\\s+(${KEY_SRC})\\b`, &quot;i&quot;);
+
+const primary = new Set([...(args.branch ?? &quot;&quot;).matchAll(KEY), ...(args.title ?? &quot;&quot;).matchAll(KEY)].map(m =&gt; m[0]));
+const closes = new Set(), partOf = new Set();
+for (const line of body.split(/\r?\n/)) {
+  const m = line.match(DECL);
+  if (m) (m[1].toLowerCase() === &quot;part of&quot; ? partOf : closes).add(m[2]);
+}
+const mentioned = new Set([...body.matchAll(KEY)].map(m =&gt; m[0]));
+
+const errors = [];
+for (const k of primary) {
+  if (!closes.has(k) &amp;&amp; !partOf.has(k)) errors.push(`${k} is in the branch or title but has no &quot;Closes&quot; or &quot;Part of&quot; line.`);
+  if (closes.has(k) &amp;&amp; partOf.has(k)) errors.push(`${k} is declared both &quot;Closes&quot; and &quot;Part of&quot;. Pick one.`);
+}
+for (const k of mentioned) {
+  if (!primary.has(k) &amp;&amp; !closes.has(k) &amp;&amp; !partOf.has(k))
+    errors.push(`${k} is mentioned but not declared. Write it as &quot;${k.replace(&quot;-&quot;, &quot; &quot;)}&quot; so the tracker ignores it.`);
+}
+
+if (args.mode === &quot;close&quot;) {
+  console.log(JSON.stringify({ close: [...closes], comment: [...new Set([...primary, ...partOf])].filter(k =&gt; !closes.has(k)) }));
+  process.exit(0);
+}
+if (errors.length) { errors.forEach(e =&gt; console.error(e)); process.exit(1); }
+console.log(&quot;Closure declaration OK.&quot;);</pre></div></div>
+<div class="bp" id="bp-classify"><div class="bp-head"><h3><span class="bp-id">B11</span>Agent classifier and second-reader gate</h3><span class="bp-meta">review-gate.sh + count-approvals.mjs · Bash, Node</span></div><p>Fixes pitfall 3. Every gate uses one definition of "agent-authored", and the second-reader rule keys on the paths changed, not only on who pushed. The approval counter takes each reviewer's latest review, so a later "changes requested" outranks an earlier approval.</p><div class="codewrap"><button class="copy" type="button" aria-label="Copy B11">Copy</button><pre class="code">#!/usr/bin/env bash
+# Second-reader gate. Requires an approving review from someone other than the author when a change
+# is agent-authored OR touches a high-risk path. It keys on what changed, not only on who pushed:
+# agent sessions often push under an engineer&#x27;s own identity, so an author-only gate never fires.
+#
+# Inputs (env):
+#   AUTHOR_TYPE           User | Bot
+#   HEAD_REF              source branch name
+#   BODY                  pull request description
+#   CHANGED_FILES         newline-separated changed paths
+#   APPROVALS             approving reviews from people other than the author
+#   HIGH_RISK_PATHS       optional ERE; tune it to your repo&#x27;s security-relevant paths
+#   AGENT_BRANCH_PATTERN  optional ERE for agent-created branches (default &#x27;^(agent|ai)/&#x27;)
+#   AGENT_FOOTER_PATTERN  optional ERE (case-insensitive) for the footer agent tools add to PR
+#                         descriptions (default &#x27;generated (with|by) &#x27;). Narrow it to your tools&#x27;
+#                         exact footers if it catches too much; a false positive only asks for a review.
+#
+# Pair it with a CODEOWNERS file so the platform requests the right reviewer, e.g.:
+#   /migrations/            @org/security-reviewers
+#   /src/auth/              @org/security-reviewers
+#   /src/billing/           @org/security-reviewers
+#   /data/signed-records/   @org/domain-reviewers
+set -euo pipefail
+
+HIGH_RISK=&quot;${HIGH_RISK_PATHS:-^(migrations/|src/auth/|src/billing/|data/signed-records/|ci/workflows/|\.github/workflows/)}&quot;
+AGENT_BRANCH=&quot;${AGENT_BRANCH_PATTERN:-^(agent|ai)/}&quot;
+AGENT_FOOTER=&quot;${AGENT_FOOTER_PATTERN:-generated (with|by) }&quot;
+
+is_agent_authored() {
+  [ &quot;${AUTHOR_TYPE:-User}&quot; = &quot;Bot&quot; ] &amp;&amp; return 0
+  echo &quot;${HEAD_REF:-}&quot; | grep -qE &quot;$AGENT_BRANCH&quot; &amp;&amp; return 0
+  # Agent sessions that push as a human usually still leave a generated-by footer.
+  echo &quot;${BODY:-}&quot; | grep -qiE &quot;$AGENT_FOOTER&quot; &amp;&amp; return 0
+  return 1
+}
+
+risky_files=&quot;$(echo &quot;${CHANGED_FILES:-}&quot; | grep -E &quot;$HIGH_RISK&quot; || true)&quot;
+reasons=()
+if is_agent_authored; then reasons+=(&quot;agent-authored&quot;); fi
+if [ -n &quot;$risky_files&quot; ]; then reasons+=(&quot;touches: $(echo &quot;$risky_files&quot; | head -3 | tr &#x27;\n&#x27; &#x27; &#x27;)&quot;); fi
+
+if [ &quot;${#reasons[@]}&quot; -gt 0 ] &amp;&amp; [ &quot;${APPROVALS:-0}&quot; -lt 1 ]; then
+  echo &quot;::error::This change needs an approving review from someone other than the author.&quot;
+  echo &quot;Reason: ${reasons[*]}&quot;
+  exit 1
+fi
+echo &quot;Review gate OK.&quot;
+
+# ------------------------------------------------------------------
+# count-approvals.mjs: the APPROVALS input
+# ------------------------------------------------------------------
+#!/usr/bin/env node
+// Counts current approvals from people other than the author, for review-gate.sh&#x27;s APPROVALS input.
+//
+// usage:
+//   gh api --paginate repos/&lt;owner&gt;/&lt;repo&gt;/pulls/&lt;n&gt;/reviews | count-approvals.mjs --format=github --author=&lt;login&gt;
+//   curl .../pullRequests/&lt;id&gt;?api-version=7.1           | count-approvals.mjs --format=ado
+//
+// github: each reviewer&#x27;s LATEST non-comment review counts, so a later &quot;changes requested&quot;
+//         outranks an earlier approval. Bot reviews and the author&#x27;s own review never count.
+//         Accepts one JSON array or several concatenated arrays (gh --paginate output).
+// ado:    reviewers with vote 10 (approved) or 5 (approved with suggestions), excluding the PR
+//         creator and group (container) reviewers.
+const arg = n =&gt; (process.argv.find(a =&gt; a.startsWith(`--${n}=`)) ?? &quot;&quot;).split(&quot;=&quot;).slice(1).join(&quot;=&quot;);
+const format = arg(&quot;format&quot;) || &quot;github&quot;;
+const raw = await new Promise(r =&gt; { let s = &quot;&quot;; process.stdin.on(&quot;data&quot;, d =&gt; s += d).on(&quot;end&quot;, () =&gt; r(s)); });
+
+function parseConcatenatedArrays(text) {
+  const out = [];
+  let depth = 0, start = -1, inStr = false, esc = false;
+  for (let i = 0; i &lt; text.length; i++) {
+    const c = text[i];
+    if (inStr) { if (esc) esc = false; else if (c === &quot;\\&quot;) esc = true; else if (c === &#x27;&quot;&#x27;) inStr = false; continue; }
+    if (c === &#x27;&quot;&#x27;) inStr = true;
+    else if (c === &quot;[&quot;) { if (depth++ === 0) start = i; }
+    else if (c === &quot;]&quot; &amp;&amp; --depth === 0) out.push(...JSON.parse(text.slice(start, i + 1)));
+  }
+  return out;
+}
+
+let count = 0;
+if (format === &quot;github&quot;) {
+  const author = arg(&quot;author&quot;);
+  const latest = new Map();
+  for (const r of parseConcatenatedArrays(raw)) {
+    if (!r?.user || r.user.type === &quot;Bot&quot; || r.user.login === author) continue;
+    if (![&quot;APPROVED&quot;, &quot;CHANGES_REQUESTED&quot;, &quot;DISMISSED&quot;].includes(r.state)) continue;
+    const prev = latest.get(r.user.login);
+    if (!prev || new Date(r.submitted_at) &gt;= new Date(prev.submitted_at)) latest.set(r.user.login, r);
+  }
+  count = [...latest.values()].filter(r =&gt; r.state === &quot;APPROVED&quot;).length;
+} else if (format === &quot;ado&quot;) {
+  const pr = JSON.parse(raw);
+  const creator = pr.createdBy?.id;
+  count = (pr.reviewers ?? []).filter(r =&gt; r.id !== creator &amp;&amp; !r.isContainer &amp;&amp; (r.vote === 10 || r.vote === 5)).length;
+} else {
+  console.error(`Unknown --format &quot;${format}&quot;. Use github or ado.`);
+  process.exit(1);
+}
+console.log(count);</pre></div></div>
+<div class="bp" id="bp-tier"><div class="bp-head"><h3><span class="bp-id">B12</span>CI tier classifier</h3><span class="bp-meta">scripts/ci-tier.mjs · Node</span></div><p>Lets small changes request a lighter pipeline without letting a label skip real checks. The label is a request. The diff decides.</p><div class="codewrap"><button class="copy" type="button" aria-label="Copy B12">Copy</button><pre class="code">#!/usr/bin/env node
+// CI tier classifier. A tier label on a pull request is a request, never a grant: the diff decides.
+//
+// usage: ci-tier.mjs --requested=full|light|docs [--no-fail]   (changed files on stdin, one per line)
+//   prints tier=&lt;resolved tier&gt;. Exits 1 when the request doesn&#x27;t fit, naming the files, unless
+//   --no-fail is given (use that where another job reports the error and you only need the tier).
+//
+// Env overrides (ERE, JavaScript syntax):
+//   DOCS_PATHS         files a &quot;docs&quot; tier may contain
+//   ALWAYS_FULL_PATHS  security-relevant and dependency files that always get the full suite
+//   LIGHT_MAX_FILES    size cap for the &quot;light&quot; tier (default 25)
+const requested = (process.argv.find(a =&gt; a.startsWith(&quot;--requested=&quot;)) ?? &quot;=full&quot;).split(&quot;=&quot;)[1];
+const files = (await new Promise(r =&gt; { let s = &quot;&quot;; process.stdin.on(&quot;data&quot;, d =&gt; s += d).on(&quot;end&quot;, () =&gt; r(s)); }))
+  .split(/\r?\n/).map(f =&gt; f.trim()).filter(Boolean);
+
+const DOCS = new RegExp(process.env.DOCS_PATHS || String.raw`\.(md|mdx|txt)$|^docs/|^sessions/`);
+const ALWAYS_FULL = new RegExp(process.env.ALWAYS_FULL_PATHS ||
+  String.raw`^(migrations/|src/auth/|src/billing/|ci/workflows/|\.github/workflows/|package(-lock)?\.json$|.*\.lock$)`);
+const LIGHT_MAX_FILES = Number(process.env.LIGHT_MAX_FILES || 25);
+
+const TIERS = {
+  full: () =&gt; [],
+  light: () =&gt; {
+    const m = files.filter(f =&gt; ALWAYS_FULL.test(f));
+    if (files.length &gt; LIGHT_MAX_FILES) m.push(`(${files.length} files, more than the ${LIGHT_MAX_FILES}-file limit)`);
+    return m;
+  },
+  docs: () =&gt; files.filter(f =&gt; !DOCS.test(f) || ALWAYS_FULL.test(f)),
+};
+
+const noFail = process.argv.includes(&quot;--no-fail&quot;);
+if (!TIERS[requested]) {
+  console.error(`Unknown tier &quot;${requested}&quot;. Use one of: ${Object.keys(TIERS).join(&quot;, &quot;)}.`);
+  console.log(&quot;tier=full&quot;);
+  process.exit(noFail ? 0 : 1);
+}
+
+const misfits = TIERS[requested]();
+if (misfits.length) {
+  console.error(`Requested &quot;${requested}&quot;, but these need the full suite:\n  ${misfits.join(&quot;\n  &quot;)}`);
+  console.log(&quot;tier=full&quot;);
+  process.exit(noFail ? 0 : 1);
+}
+console.log(`tier=${requested}`);</pre></div></div>
+<div class="bp" id="bp-verify"><div class="bp-head"><h3><span class="bp-id">B13</span>Rule-reference verifier</h3><span class="bp-meta">scripts/verify-rule-refs.mjs · Node</span></div><p>The check we would build first if we started again. It fails when a rule names a script, package command or CI job that doesn't exist.</p><div class="codewrap"><button class="copy" type="button" aria-label="Copy B13">Copy</button><pre class="code">#!/usr/bin/env node
+// Rule-reference verifier: fails when an agent rule names a script, package command or CI job that
+// doesn&#x27;t exist. A rule that describes a safeguard nobody built is worse than no rule, because
+// agents trust it and skip the care the safeguard was meant to replace.
+//
+// Write rules so their claims are machine-readable:
+//   - scripts and files in backticks:  `scripts/check-thing.mjs`
+//   - package commands in backticks:   `npm run lint` (also `bun run`, `pnpm run`, `yarn run`)
+//   - CI jobs or steps by exact name:  CI job &quot;Access policy guard&quot;
+//
+// Env overrides (comma-separated):
+//   RULE_DOCS  files/dirs holding rules     (default: AGENTS.md,rules,.agents/rules; add your tools&#x27; own
+//              instruction files, e.g. RULE_DOCS=AGENTS.md,.agents/rules,&lt;tool&gt;.md)
+//   CI_DIRS    dirs holding CI definitions  (default: .github/workflows,ci/workflows,pipelines,.azure-pipelines)
+//   PATH_ROOTS path prefixes treated as file references
+//              (default: scripts,hooks,pre-push-checks,ci,.github,pipelines)
+import { readFileSync, existsSync, readdirSync, statSync } from &quot;node:fs&quot;;
+import { join } from &quot;node:path&quot;;
+
+const list = (v, d) =&gt; (v || d).split(&quot;,&quot;).map(s =&gt; s.trim()).filter(Boolean);
+const walk = p =&gt; !existsSync(p) ? [] : statSync(p).isDirectory()
+  ? readdirSync(p, { withFileTypes: true }).flatMap(e =&gt; walk(join(p, e.name)))
+  : [p];
+
+const docs = list(process.env.RULE_DOCS, &quot;AGENTS.md,rules,.agents/rules&quot;)
+  .flatMap(walk).filter(f =&gt; f.endsWith(&quot;.md&quot;));
+const pkgScripts = existsSync(&quot;package.json&quot;)
+  ? Object.keys(JSON.parse(readFileSync(&quot;package.json&quot;, &quot;utf8&quot;)).scripts ?? {}) : [];
+const ciText = list(process.env.CI_DIRS, &quot;.github/workflows,ci/workflows,pipelines,.azure-pipelines&quot;)
+  .flatMap(walk).filter(f =&gt; /\.ya?ml$/.test(f)).map(f =&gt; readFileSync(f, &quot;utf8&quot;)).join(&quot;\n&quot;);
+const roots = list(process.env.PATH_ROOTS, &quot;scripts,hooks,pre-push-checks,ci,.github,pipelines&quot;)
+  .map(r =&gt; r.replace(/[.*+?^${}()|[\]\\]/g, &quot;\\$&amp;&quot;)).join(&quot;|&quot;);
+const PATH_REF = new RegExp(&quot;`((?:&quot; + roots + &quot;)/[\\w./-]+\\.\\w+)`&quot;, &quot;g&quot;);
+const PKG_REF = /`(?:npm|bun|pnpm|yarn) run ([\w:.-]+)[^`]*`/g;
+const JOB_REF = /CI (?:job|step) &quot;([^&quot;]+)&quot;/g;
+const jobDefined = name =&gt; new RegExp(`(?:^|\\n)\\s*-?\\s*(?:name|displayName|job|stage):\\s*[&#x27;&quot;]?${
+  name.replace(/[.*+?^${}()|[\]\\]/g, &quot;\\$&amp;&quot;)}[&#x27;&quot;]?\\s*(?:\\n|$)`).test(ciText);
+
+const problems = [];
+for (const file of docs) {
+  const text = readFileSync(file, &quot;utf8&quot;);
+  for (const [, p] of text.matchAll(PATH_REF))
+    if (!existsSync(p)) problems.push(`${file}: references missing file ${p}`);
+  for (const [, name] of text.matchAll(PKG_REF))
+    if (!pkgScripts.includes(name)) problems.push(`${file}: references missing package script &quot;${name}&quot;`);
+  for (const [, job] of text.matchAll(JOB_REF))
+    if (!jobDefined(job)) problems.push(`${file}: claims CI job &quot;${job}&quot;, which no CI definition names`);
+}
+
+if (problems.length) { problems.forEach(p =&gt; console.error(p)); process.exit(1); }
+console.log(`Rule references OK (${docs.length} rule files checked).`);</pre></div><p>To make this work, write rules so their claims are machine-readable: name a job as <code>CI job "Access policy guard"</code>, and a script in backticks.</p></div>
+<div class="bp" id="bp-routing"><div class="bp-head"><h3><span class="bp-id">B14</span>Model routing config</h3><span class="bp-meta">routing.json · JSON</span></div><p>Which tier each kind of work gets, written down. Tickets carry the tag. A session on the wrong tier halts and asks.</p><div class="codewrap"><button class="copy" type="button" aria-label="Copy B14">Copy</button><pre class="code">{
+  &quot;default_tier&quot;: &quot;medium&quot;,
+  &quot;effort_ceiling&quot;: &quot;medium&quot;,
+  &quot;tiers&quot;: {
+    &quot;small&quot;:  { &quot;use_for&quot;: &quot;mechanical, fully specified work&quot;, &quot;effort&quot;: &quot;low&quot; },
+    &quot;medium&quot;: { &quot;use_for&quot;: &quot;day-to-day features, fixes, docs&quot;, &quot;effort&quot;: &quot;medium&quot; },
+    &quot;large&quot;:  { &quot;use_for&quot;: &quot;architecture, schema, auth, billing, high blast radius&quot;, &quot;effort&quot;: &quot;medium&quot; }
+  },
+  &quot;routes&quot;: [
+    { &quot;match&quot;: &quot;bulk rename|boilerplate|formatting&quot;,      &quot;tier&quot;: &quot;small&quot;,  &quot;delegate&quot;: true },
+    { &quot;match&quot;: &quot;repo-wide search|file sweep|inventory&quot;,   &quot;tier&quot;: &quot;small&quot;,  &quot;delegate&quot;: true },
+    { &quot;match&quot;: &quot;migration|access policy|auth|billing&quot;,    &quot;tier&quot;: &quot;large&quot; },
+    { &quot;match&quot;: &quot;docs|single-file fix|test addition&quot;,      &quot;tier&quot;: &quot;medium&quot; }
+  ],
+  &quot;on_mismatch&quot;: &quot;halt_and_ask&quot;,
+  &quot;hard_bans&quot;: [
+    &quot;no external or free-tier agent on security-relevant paths&quot;,
+    &quot;no agent merges its own pull request&quot;
+  ]
+}</pre></div></div>
+<div class="bp" id="bp-queue"><div class="bp-head"><h3><span class="bp-id">B15</span>Professional review-queue entry</h3><span class="bp-meta">Comment on the living review ticket · Markdown</span></div><p>One living ticket per profession (legal, domain specialist). Each best-effort call adds an entry. Nothing is left "flagged, not decided".</p><div class="codewrap"><button class="copy" type="button" aria-label="Copy B15">Copy</button><pre class="code">### Best-effort decision: &lt;short title&gt;
+
+- **Question:** &lt;What needed a professional&#x27;s judgement.&gt;
+- **Decision taken:** &lt;The reading we implemented.&gt;
+- **Basis:** &lt;Instrument, edition, section or clause actually read. Quote
+  the operative words.&gt;
+- **Why this reading:** &lt;Why it&#x27;s the conservative choice.&gt;
+- **Where it lives:** &lt;File or record, and the change that shipped it.&gt;
+- **If you disagree:** &lt;Exactly what changes, and how big the change is.&gt;
+- **Status:** best effort · not reviewed · reviewed_by is empty</pre></div></div>
+<div class="bp" id="bp-coord"><div class="bp-head"><h3><span class="bp-id">B16</span>Shared-resource coordination message</h3><span class="bp-meta">Session-to-session message · text</span></div><p>Send before using anything machine-wide: the local database stack, a fixed port, a shared remote test environment.</p><div class="codewrap"><button class="copy" type="button" aria-label="Copy B16">Copy</button><pre class="code">to: &lt;each active session that might be testing&gt;
+
+I&#x27;m about to use: &lt;local database stack | the preview port | shared test env&gt;
+For: &lt;what, e.g. the full test suite (resets app tables)&gt;
+Expected duration: &lt;~N min&gt;
+Is anything of yours running against it? I&#x27;ll wait for &quot;go&quot; or &quot;done&quot;.
+
+--- when finished ---
+Done with &lt;resource&gt;. It&#x27;s free.</pre></div></div>
+<div class="bp" id="bp-catalogue"><div class="bp-head"><h3><span class="bp-id">B17</span>Catalogue completeness check</h3><span class="bp-meta">scripts/check-catalogue.mjs + catalogues.json · Node</span></div><p>Agents reuse what they can find. This fails the build when a new shared component or server function has no catalogue entry. Which folders are catalogued, and where, is set in a small <code>catalogues.json</code>.</p><div class="codewrap"><button class="copy" type="button" aria-label="Copy B17">Copy</button><pre class="code">#!/usr/bin/env node
+// Catalogue completeness check: fails when a file (or folder) in a catalogued location isn&#x27;t named,
+// in backticks, in its catalogue doc. Agents reuse what they can find; an uncatalogued component
+// gets rebuilt in parallel by the next session.
+//
+// Config: catalogues.json at the repo root (or CATALOGUE_CONFIG=&lt;path&gt;), an array of
+//   { &quot;dir&quot;: &quot;src/ui&quot;, &quot;doc&quot;: &quot;docs/component-catalogue.md&quot;, &quot;ext&quot;: [&quot;.tsx&quot;] }
+//   { &quot;dir&quot;: &quot;server/functions&quot;, &quot;doc&quot;: &quot;docs/function-catalogue.md&quot;, &quot;dirsAreItems&quot;: true }
+// &quot;dirsAreItems&quot;: each sub-folder is one item (folders starting with &quot;_&quot; are skipped as shared code).
+// Files whose name starts with &quot;_&quot; or ends in .test.* / .spec.* are skipped.
+import { readFileSync, readdirSync, existsSync } from &quot;node:fs&quot;;
+import { basename, extname } from &quot;node:path&quot;;
+
+const configPath = process.env.CATALOGUE_CONFIG || &quot;catalogues.json&quot;;
+if (!existsSync(configPath)) {
+  console.error(`No catalogue config at ${configPath}. Create it (see this script&#x27;s header).`);
+  process.exit(1);
+}
+const CATALOGUES = JSON.parse(readFileSync(configPath, &quot;utf8&quot;));
+
+const problems = [];
+for (const c of CATALOGUES) {
+  if (!existsSync(c.dir)) { problems.push(`${configPath}: catalogued folder ${c.dir} doesn&#x27;t exist`); continue; }
+  if (!existsSync(c.doc)) { problems.push(`${configPath}: catalogue doc ${c.doc} doesn&#x27;t exist`); continue; }
+  const doc = readFileSync(c.doc, &quot;utf8&quot;);
+  const items = readdirSync(c.dir, { withFileTypes: true })
+    .filter(e =&gt; !e.name.startsWith(&quot;_&quot;))
+    .filter(e =&gt; c.dirsAreItems
+      ? e.isDirectory()
+      : e.isFile() &amp;&amp; (c.ext ?? []).includes(extname(e.name)) &amp;&amp; !/\.(test|spec)\.\w+$/.test(e.name))
+    .map(e =&gt; c.dirsAreItems ? e.name : basename(e.name, extname(e.name)));
+  for (const item of items)
+    if (!doc.includes(&quot;`&quot; + item + &quot;`&quot;)) problems.push(`${c.dir}/${item} is not listed in ${c.doc}`);
+}
+
+if (problems.length) {
+  problems.forEach(m =&gt; console.error(m));
+  console.error(&quot;Add an entry, or reuse an existing item from the catalogue.&quot;);
+  process.exit(1);
+}
+console.log(`Catalogues complete (${CATALOGUES.length} checked).`);</pre></div></div>
+
+</div>
+</section>
+
+
+<footer>
+This paper describes one team's practice and is shared for discussion. Figures are approximate and drawn from a single month. Examples and boilerplates are generalised and use invented names and keys. The paper contains no product, customer or security-defect detail. The boilerplates may be freely adapted.
+</footer>
+</div>
+
+<script>
+document.addEventListener("click", function (e) {
+  var btn = e.target.closest(".copy");
+  if (!btn) return;
+  var pre = btn.parentElement.querySelector("pre");
+  var text = pre.innerText;
+  function done(msg) { btn.textContent = msg; setTimeout(function () { btn.textContent = "Copy"; }, 1600); }
+  function fallback() {
+    var r = document.createRange(); r.selectNodeContents(pre);
+    var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+    done("Selected. Press Ctrl+C");
+  }
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done("Copied"); }, fallback);
+    } else { fallback(); }
+  } catch (err) { fallback(); }
+});
+</script>
+<!-- Mermaid renders the lifecycle diagram when this page is opened outside a viewer that renders it natively. -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script>if (window.mermaid) { mermaid.initialize({ startOnLoad: true, theme: matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "neutral" }); }</script>
+</body>
+</html>

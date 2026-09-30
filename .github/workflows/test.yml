@@ -1,0 +1,28 @@
+# Self-test for the kit: runs the script test suite and ShellCheck on every push and pull request.
+name: Test kit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Script tests
+        run: bash tests/run-tests.sh
+      - name: ShellCheck
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
+          find . -path ./.git -prune -o -type f -name '*.sh' -print0 | xargs -0 shellcheck
+      - name: JSON files parse
+        run: |
+          for f in $(git ls-files '*.json'); do node -e "JSON.parse(require('fs').readFileSync('$f','utf8'))" || exit 1; done
