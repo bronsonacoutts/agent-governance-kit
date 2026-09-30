@@ -9,7 +9,7 @@ human approval and an incident feedback loop, from ticket to merge.
   material as a standalone page, with every boilerplate inline. It contains no organisation-specific
   detail.
 
-Every script has tests: `tests/run-tests.sh` runs 78 pass/fail cases in a throwaway repository, and
+Every script has tests: `tests/run-tests.sh` runs 90 pass/fail cases in a throwaway repository, and
 CI runs them plus ShellCheck on every push. The two CI definitions parse and call only those scripts,
 but haven't yet run on a live GitHub or Azure DevOps project. Run each once on a test pull request
 before making it a required check.
@@ -56,6 +56,8 @@ Do these in order. The first four give the most protection for the least effort.
    the repo root. Wire them with your hook manager, e.g. Husky:
    `.husky/pre-commit` runs `bash scripts/git-health.sh --check`, and `.husky/pre-push` runs
    `bash scripts/pre-push.sh`.
+   The runner checks the branch you have checked out. A push that includes any other branch or
+   commit is refused, because the checks read the working tree and can't vouch for it.
 6. Add the PR template, `templates/session-handoff.md` as `memory-bank/sessions/README.md`, and
    `catalogues.json` with `check-catalogue.mjs` once you have shared components worth cataloguing.
 

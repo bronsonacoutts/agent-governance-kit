@@ -14,13 +14,18 @@
 //   CI_DIRS    dirs holding CI definitions  (default: .github/workflows,ci/workflows,pipelines,.azure-pipelines)
 //   PATH_ROOTS path prefixes treated as file references
 //              (default: scripts,hooks,pre-push-checks,ci,.github,pipelines)
-import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync, lstatSync } from "node:fs";
 import { join } from "node:path";
 
 const list = (v, d) => (v || d).split(",").map(s => s.trim()).filter(Boolean);
-const walk = p => !existsSync(p) ? [] : statSync(p).isDirectory()
-  ? readdirSync(p, { withFileTypes: true }).flatMap(e => walk(join(p, e.name)))
-  : [p];
+// lstat, and skip symlinks: the rule and CI folders come from the pull request, so a link to an
+// ancestor (endless recursion) or outside the checkout must never be followed.
+const walk = p => {
+  if (!existsSync(p)) return [];
+  const st = lstatSync(p);
+  if (st.isSymbolicLink()) return [];
+  return st.isDirectory() ? readdirSync(p).flatMap(n => walk(join(p, n))) : [p];
+};
 
 const docs = list(process.env.RULE_DOCS, "AGENTS.md,rules,.agents/rules")
   .flatMap(walk).filter(f => f.endsWith(".md"));

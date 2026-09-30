@@ -14,10 +14,11 @@ const files = (await new Promise(r => { let s = ""; process.stdin.on("data", d =
   .split(/\r?\n/).map(f => f.trim()).filter(Boolean);
 
 const DOCS = new RegExp(process.env.DOCS_PATHS || String.raw`\.(md|mdx|txt)$|^docs/|^sessions/`);
-// CI definitions for every supported platform, the governance code and dependency manifests always
-// get the full suite, so a change to CI control can never ride a lighter tier.
+// Security paths, signed records, CI definitions for every supported platform, the governance code
+// (where the kit keeps it and where the README installs it) and dependency manifests always get the
+// full suite, so a change to CI control can never ride a lighter tier. Keep in step with review-gate.sh.
 const ALWAYS_FULL = new RegExp(process.env.ALWAYS_FULL_PATHS ||
-  String.raw`^(migrations/|src/auth/|src/billing/|\.github/|ci/|pipelines/|\.azure-pipelines/|azure-pipelines\.ya?ml$|\.gitlab-ci\.yml$|scripts/agent-governance/|hooks/|CODEOWNERS$)|(^|/)(package(-lock)?\.json|[\w.-]*\.lockb?)$`);
+  String.raw`^(migrations/|src/auth/|src/billing/|data/signed-records/|\.github/|ci/|pipelines/|\.azure-pipelines/|azure-pipelines\.ya?ml$|\.gitlab-ci\.yml$|scripts/agent-governance/|hooks/|scripts/(branch-guard\.mjs|git-health\.sh|pre-push\.sh)$|pre-push-checks/|CODEOWNERS$)|(^|/)(package(-lock)?\.json|[\w.-]*\.lockb?)$`);
 const LIGHT_MAX_FILES = Number(process.env.LIGHT_MAX_FILES || 25);
 
 const TIERS = {
