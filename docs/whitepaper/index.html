@@ -519,7 +519,7 @@ pre-commit: repository health
 <section id="kit">
 <div class="col">
 <h2>Boilerplate kit</h2>
-<p>Starting points for each control in this paper. They are deliberately generic: rename the ticket prefix (<code>PROJ</code>), the paths and the CI syntax to match your stack. Every script here has a test suite of 78 pass-and-fail cases, run against a throwaway repository, and passes ShellCheck. The CI definitions that call them run the gate scripts from the base branch, not from the pull request being judged, and have not yet run on a live project. They are starting points, not hardened products: read each one before you adopt it, and keep the tests with it.</p>
+<p>Starting points for each control in this paper. They are deliberately generic: rename the ticket prefix (<code>PROJ</code>), the paths and the CI syntax to match your stack. Every script here has a test suite of 90 pass-and-fail cases, run against a throwaway repository, and passes ShellCheck. The CI definitions that call them run the gate scripts from the base branch, not from the pull request being judged, and have not yet run on a live project. They are starting points, not hardened products: read each one before you adopt it, and keep the tests with it.</p>
 <p>Adopt them in the order of the "Starting out" list above. B1, B6, B9 and B13 give the most protection for the least effort.</p>
 <ol class="kit-index"><li><a href="#bp-root">B1 · Root agent instruction file</a></li><li><a href="#bp-rule">B2 · Topic rule</a></li><li><a href="#bp-lesson">B3 · Lesson learned</a></li><li><a href="#bp-handoff">B4 · Session handoff note</a></li><li><a href="#bp-pr">B5 · Pull request description</a></li><li><a href="#bp-branch">B6 · Branch guard for agent edits</a></li><li><a href="#bp-health">B7 · Repository health check</a></li><li><a href="#bp-prepush">B8 · Pre-push runner and a check file</a></li><li><a href="#bp-ticket">B9 · CI: work-item reference guard</a></li><li><a href="#bp-closure">B10 · Closure-declaration parser</a></li><li><a href="#bp-classify">B11 · Agent classifier and second-reader gate</a></li><li><a href="#bp-tier">B12 · CI tier classifier</a></li><li><a href="#bp-verify">B13 · Rule-reference verifier</a></li><li><a href="#bp-routing">B14 · Model routing config</a></li><li><a href="#bp-queue">B15 · Professional review-queue entry</a></li><li><a href="#bp-coord">B16 · Shared-resource coordination message</a></li><li><a href="#bp-catalogue">B17 · Catalogue completeness check</a></li></ol>
 </div>
@@ -721,6 +721,26 @@ cd &quot;$(git rev-parse --show-toplevel)&quot; || exit 1
 BASE_REF=&quot;${BASE_REF:-origin/main}&quot;
 CHECKS_DIR=&quot;${PRE_PUSH_CHECKS_DIR:-pre-push-checks}&quot;
 
+# Git passes the refs being pushed on stdin: &quot;&lt;local ref&gt; &lt;local sha&gt; &lt;remote ref&gt; &lt;remote sha&gt;&quot;.
+# Checks read files from the working tree, so they can only vouch for HEAD. If a push includes a
+# commit other than HEAD (e.g. `git push origin other-branch`), stop rather than approve commits
+# nobody checked. Deletions (all-zero local sha) are skipped. Run by hand, with no stdin, the
+# runner checks HEAD.
+HEAD_SHA=&quot;$(git rev-parse HEAD)&quot;
+if [ ! -t 0 ]; then
+  while read -r local_ref local_sha _remote_ref _remote_sha; do
+    [ -z &quot;${local_sha:-}&quot; ] &amp;&amp; continue
+    case &quot;$local_sha&quot; in *[!0]*) ;; *) continue ;; esac
+    commit=&quot;$(git rev-parse --verify --quiet &quot;$local_sha^{commit}&quot; || true)&quot;
+    if [ -n &quot;$commit&quot; ] &amp;&amp; [ &quot;$commit&quot; != &quot;$HEAD_SHA&quot; ]; then
+      echo &quot;pre-push: this push includes $local_ref ($commit), which isn&#x27;t the checked-out HEAD.&quot;
+      echo &quot;The checks read the working tree, so they can&#x27;t vouch for it. Check that branch out and push&quot;
+      echo &quot;it from there.&quot;
+      exit 1
+    fi
+  done
+fi
+
 # Fail closed: without the base we can&#x27;t see every commit on the branch, and checking only the
 # last commit would silently miss violations in earlier ones.
 if ! BASE=&quot;$(git merge-base HEAD &quot;$BASE_REF&quot; 2&gt;/dev/null)&quot;; then
@@ -898,8 +918,10 @@ console.log(&quot;Closure declaration OK.&quot;);</pre></div></div>
 set -euo pipefail
 
 # Default high-risk paths cover CI definitions for every supported platform and the governance
-# code itself: a change to a gate must never be able to skip that gate&#x27;s own review.
-HIGH_RISK=&quot;${HIGH_RISK_PATHS:-^(migrations/|src/auth/|src/billing/|data/signed-records/|\.github/|ci/|pipelines/|\.azure-pipelines/|azure-pipelines\.ya?ml$|\.gitlab-ci\.yml$|scripts/agent-governance/|hooks/|CODEOWNERS$)}&quot;
+# code itself, both where the kit keeps it and where the README installs it (scripts/branch-guard.mjs,
+# scripts/git-health.sh, scripts/pre-push.sh, pre-push-checks/): a change to a gate must never be
+# able to skip that gate&#x27;s own review.
+HIGH_RISK=&quot;${HIGH_RISK_PATHS:-^(migrations/|src/auth/|src/billing/|data/signed-records/|\.github/|ci/|pipelines/|\.azure-pipelines/|azure-pipelines\.ya?ml$|\.gitlab-ci\.yml$|scripts/agent-governance/|hooks/|scripts/(branch-guard\.mjs|git-health\.sh|pre-push\.sh)$|pre-push-checks/|CODEOWNERS$)}&quot;
 AGENT_BRANCH=&quot;${AGENT_BRANCH_PATTERN:-^(agent|ai)/}&quot;
 AGENT_FOOTER=&quot;${AGENT_FOOTER_PATTERN:-generated (with|by) }&quot;
 
@@ -996,10 +1018,11 @@ const files = (await new Promise(r =&gt; { let s = &quot;&quot;; process.stdin.o
   .split(/\r?\n/).map(f =&gt; f.trim()).filter(Boolean);
 
 const DOCS = new RegExp(process.env.DOCS_PATHS || String.raw`\.(md|mdx|txt)$|^docs/|^sessions/`);
-// CI definitions for every supported platform, the governance code and dependency manifests always
-// get the full suite, so a change to CI control can never ride a lighter tier.
+// Security paths, signed records, CI definitions for every supported platform, the governance code
+// (where the kit keeps it and where the README installs it) and dependency manifests always get the
+// full suite, so a change to CI control can never ride a lighter tier. Keep in step with review-gate.sh.
 const ALWAYS_FULL = new RegExp(process.env.ALWAYS_FULL_PATHS ||
-  String.raw`^(migrations/|src/auth/|src/billing/|\.github/|ci/|pipelines/|\.azure-pipelines/|azure-pipelines\.ya?ml$|\.gitlab-ci\.yml$|scripts/agent-governance/|hooks/|CODEOWNERS$)|(^|/)(package(-lock)?\.json|[\w.-]*\.lockb?)$`);
+  String.raw`^(migrations/|src/auth/|src/billing/|data/signed-records/|\.github/|ci/|pipelines/|\.azure-pipelines/|azure-pipelines\.ya?ml$|\.gitlab-ci\.yml$|scripts/agent-governance/|hooks/|scripts/(branch-guard\.mjs|git-health\.sh|pre-push\.sh)$|pre-push-checks/|CODEOWNERS$)|(^|/)(package(-lock)?\.json|[\w.-]*\.lockb?)$`);
 const LIGHT_MAX_FILES = Number(process.env.LIGHT_MAX_FILES || 25);
 
 const TIERS = {
@@ -1042,13 +1065,18 @@ console.log(`tier=${requested}`);</pre></div></div>
 //   CI_DIRS    dirs holding CI definitions  (default: .github/workflows,ci/workflows,pipelines,.azure-pipelines)
 //   PATH_ROOTS path prefixes treated as file references
 //              (default: scripts,hooks,pre-push-checks,ci,.github,pipelines)
-import { readFileSync, existsSync, readdirSync, statSync } from &quot;node:fs&quot;;
+import { readFileSync, existsSync, readdirSync, lstatSync } from &quot;node:fs&quot;;
 import { join } from &quot;node:path&quot;;
 
 const list = (v, d) =&gt; (v || d).split(&quot;,&quot;).map(s =&gt; s.trim()).filter(Boolean);
-const walk = p =&gt; !existsSync(p) ? [] : statSync(p).isDirectory()
-  ? readdirSync(p, { withFileTypes: true }).flatMap(e =&gt; walk(join(p, e.name)))
-  : [p];
+// lstat, and skip symlinks: the rule and CI folders come from the pull request, so a link to an
+// ancestor (endless recursion) or outside the checkout must never be followed.
+const walk = p =&gt; {
+  if (!existsSync(p)) return [];
+  const st = lstatSync(p);
+  if (st.isSymbolicLink()) return [];
+  return st.isDirectory() ? readdirSync(p).flatMap(n =&gt; walk(join(p, n))) : [p];
+};
 
 const docs = list(process.env.RULE_DOCS, &quot;AGENTS.md,rules,.agents/rules&quot;)
   .flatMap(walk).filter(f =&gt; f.endsWith(&quot;.md&quot;));
