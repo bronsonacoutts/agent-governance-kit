@@ -5,8 +5,17 @@
 #   WORK_ITEM_PREFIX  e.g. ABC for keys like ABC-123 (default PROJ)
 #   HIGH_RISK_PATHS   optional ERE for paths that always need a second reader
 #
-# Make each job a required status check on main. Values from the PR (title, body, branch) are
-# passed through env, never interpolated into the script: a PR title is attacker-controlled input.
+# Make the "Agent governance" job a required status check on main.
+#
+# Tamper resistance: the gate scripts run from a checkout of the PR's BASE commit, never from the
+# PR itself, so a PR can't weaken a gate that is judging it. The PR checkout is data only (the diff
+# and the rule files). A PR that changes the scripts is judged by the old scripts, and the review
+# gate treats scripts/agent-governance/ and .github/ as high-risk, so it needs a second reader. Back
+# this up with CODEOWNERS on .github/ and scripts/agent-governance/, plus "Require review from Code
+# Owners" on main.
+#
+# Values from the PR (title, body, branch) are passed through env, never interpolated into a script:
+# a PR title is attacker-controlled input.
 name: Agent Governance
 
 on:
@@ -24,91 +33,87 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  work-item-reference:
-    name: Work-item reference
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Check branch or title carries a work-item key
-        env:
-          HEAD_REF: ${{ github.event.pull_request.head.ref }}
-          PR_TITLE: ${{ github.event.pull_request.title }}
-          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
-          WORK_ITEM_PREFIX: ${{ vars.WORK_ITEM_PREFIX || 'PROJ' }}
-        run: bash scripts/agent-governance/work-item-guard.sh
-
-  closure-declaration:
-    name: Closure declaration
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 20 }
-      - name: Check Closes / Part of lines
-        env:
-          HEAD_REF: ${{ github.event.pull_request.head.ref }}
-          PR_TITLE: ${{ github.event.pull_request.title }}
-          PR_BODY: ${{ github.event.pull_request.body }}
-          WORK_ITEM_PREFIX: ${{ vars.WORK_ITEM_PREFIX || 'PROJ' }}
-        run: |
-          printf '%s' "$PR_BODY" | node scripts/agent-governance/closure-keys.mjs \
-            --mode=guard --branch="$HEAD_REF" --title="$PR_TITLE"
-
-  ci-tier:
-    name: CI tier
+  governance:
+    name: Agent governance
     runs-on: ubuntu-latest
     outputs:
       tier: ${{ steps.tier.outputs.tier }}
+    env:
+      HEAD_REF: ${{ github.event.pull_request.head.ref }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      PR_TITLE: ${{ github.event.pull_request.title }}
+      PR_BODY: ${{ github.event.pull_request.body }}
+      LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+      WORK_ITEM_PREFIX: ${{ vars.WORK_ITEM_PREFIX || 'PROJ' }}
     steps:
-      - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
+      - name: Check out the pull request (data only)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check out the base commit (trusted gate code)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: .trusted
+          persist-credentials: false
+
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
-      - name: Resolve requested tier against the diff
+
+      - name: Select gate scripts
+        run: |
+          if [ -d .trusted/scripts/agent-governance ]; then
+            echo "GOV=$PWD/.trusted/scripts/agent-governance" >> "$GITHUB_ENV"
+          else
+            # Only while the kit is being introduced: the base has no scripts yet to trust.
+            echo "::warning::The base branch has no scripts/agent-governance/, so this run uses the PR's own copy. Merge the scripts before relying on this check."
+            echo "GOV=$PWD/scripts/agent-governance" >> "$GITHUB_ENV"
+          fi
+          git diff --name-only "$BASE_SHA"..."$HEAD_SHA" > "$RUNNER_TEMP/changed-files.txt"
+
+      # Each gate runs even if an earlier one failed, so one run reports every problem.
+      - name: Work-item reference
+        if: ${{ !cancelled() }}
+        run: bash "$GOV/work-item-guard.sh"
+
+      - name: Closure declaration
+        if: ${{ !cancelled() }}
+        run: |
+          printf '%s' "$PR_BODY" | node "$GOV/closure-keys.mjs" --mode=guard --branch="$HEAD_REF" --title="$PR_TITLE"
+
+      - name: CI tier
         id: tier
-        env:
-          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        if: ${{ !cancelled() }}
         run: |
           requested=full
-          echo "$LABELS" | grep -q '"ci-docs"' && requested=docs
-          echo "$LABELS" | grep -q '"ci-light"' && requested=light
-          git diff --name-only "$BASE_SHA"...HEAD \
-            | node scripts/agent-governance/ci-tier.mjs --requested="$requested" | tee -a "$GITHUB_OUTPUT"
-      # Downstream jobs can skip expensive suites with:  if: needs.ci-tier.outputs.tier == 'full'
+          if echo "$LABELS" | grep -q '"ci-docs"'; then requested=docs; fi
+          if echo "$LABELS" | grep -q '"ci-light"'; then requested=light; fi
+          node "$GOV/ci-tier.mjs" --requested="$requested" < "$RUNNER_TEMP/changed-files.txt" | tee -a "$GITHUB_OUTPUT"
+      # Downstream jobs can skip expensive suites with: needs: governance, if: needs.governance.outputs.tier == 'full'
 
-  second-reader:
-    name: Second reader
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
-      - name: Require an independent approval for agent-authored or high-risk changes
+      - name: Second reader
+        if: ${{ !cancelled() }}
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           AUTHOR_LOGIN: ${{ github.event.pull_request.user.login }}
           AUTHOR_TYPE: ${{ github.event.pull_request.user.type }}
-          HEAD_REF: ${{ github.event.pull_request.head.ref }}
-          BODY: ${{ github.event.pull_request.body }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           HIGH_RISK_PATHS: ${{ vars.HIGH_RISK_PATHS }}
         run: |
-          [ -z "$HIGH_RISK_PATHS" ] && unset HIGH_RISK_PATHS
-          export CHANGED_FILES="$(git diff --name-only "$BASE_SHA"..."$HEAD_SHA")"
-          # Latest review per human reviewer, excluding the author; count approvals.
-          export APPROVALS="$(gh api --paginate "repos/$REPO/pulls/$PR_NUMBER/reviews" \
-            | node scripts/agent-governance/count-approvals.mjs --format=github --author="$AUTHOR_LOGIN")"
-          bash scripts/agent-governance/review-gate.sh
+          if [ -z "$HIGH_RISK_PATHS" ]; then unset HIGH_RISK_PATHS; fi
+          CHANGED_FILES="$(cat "$RUNNER_TEMP/changed-files.txt")"
+          BODY="$PR_BODY"
+          # Latest review per human reviewer, excluding the author, counted only if given on HEAD_SHA.
+          APPROVALS="$(gh api --paginate "repos/$REPO/pulls/$PR_NUMBER/reviews" \
+            | node "$GOV/count-approvals.mjs" --format=github --author="$AUTHOR_LOGIN" --commit="$HEAD_SHA")"
+          export CHANGED_FILES BODY APPROVALS
+          bash "$GOV/review-gate.sh"
 
-  rule-references:
-    name: Rule references
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 20 }
-      - name: Every check a rule names must exist
-        run: node scripts/agent-governance/verify-rule-refs.mjs
+      - name: Rule references
+        if: ${{ !cancelled() }}
+        run: node "$GOV/verify-rule-refs.mjs"

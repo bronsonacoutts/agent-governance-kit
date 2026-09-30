@@ -481,7 +481,7 @@ pre-commit: repository health
 ## Current focus: report export (PROJ-330)
 =======
 ## Current focus: sign-in messages (PROJ-412)
-&gt;&gt;&gt;&gt;&gt;&gt;&gt; main</pre><p class="ex-cap">Two unrelated changes conflicted on a notes file they didn't need to share. Now each writes <code>sessions/&lt;date&gt;-&lt;key&gt;-&lt;slug&gt;.md</code>, and nothing collides.</p></div></div>
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; main</pre><p class="ex-cap">Two unrelated changes conflicted on a notes file they didn't need to share. Now each writes <code>sessions/&lt;date&gt;-&lt;time&gt;-&lt;key&gt;-&lt;slug&gt;.md</code>, and nothing collides.</p></div></div>
 
 </div>
 </section>
@@ -519,7 +519,7 @@ pre-commit: repository health
 <section id="kit">
 <div class="col">
 <h2>Boilerplate kit</h2>
-<p>Starting points for each control in this paper. They are deliberately generic: rename the ticket prefix (<code>PROJ</code>), the paths and the CI syntax to match your stack. Every script here has a test suite of 65 pass-and-fail cases, run against a throwaway repository, and passes ShellCheck. The CI definitions that call them have not yet run on a live project. They are starting points, not hardened products: read each one before you adopt it, and keep the tests with it.</p>
+<p>Starting points for each control in this paper. They are deliberately generic: rename the ticket prefix (<code>PROJ</code>), the paths and the CI syntax to match your stack. Every script here has a test suite of 78 pass-and-fail cases, run against a throwaway repository, and passes ShellCheck. The CI definitions that call them run the gate scripts from the base branch, not from the pull request being judged, and have not yet run on a live project. They are starting points, not hardened products: read each one before you adopt it, and keep the tests with it.</p>
 <p>Adopt them in the order of the "Starting out" list above. B1, B6, B9 and B13 give the most protection for the least effort.</p>
 <ol class="kit-index"><li><a href="#bp-root">B1 · Root agent instruction file</a></li><li><a href="#bp-rule">B2 · Topic rule</a></li><li><a href="#bp-lesson">B3 · Lesson learned</a></li><li><a href="#bp-handoff">B4 · Session handoff note</a></li><li><a href="#bp-pr">B5 · Pull request description</a></li><li><a href="#bp-branch">B6 · Branch guard for agent edits</a></li><li><a href="#bp-health">B7 · Repository health check</a></li><li><a href="#bp-prepush">B8 · Pre-push runner and a check file</a></li><li><a href="#bp-ticket">B9 · CI: work-item reference guard</a></li><li><a href="#bp-closure">B10 · Closure-declaration parser</a></li><li><a href="#bp-classify">B11 · Agent classifier and second-reader gate</a></li><li><a href="#bp-tier">B12 · CI tier classifier</a></li><li><a href="#bp-verify">B13 · Rule-reference verifier</a></li><li><a href="#bp-routing">B14 · Model routing config</a></li><li><a href="#bp-queue">B15 · Professional review-queue entry</a></li><li><a href="#bp-coord">B16 · Shared-resource coordination message</a></li><li><a href="#bp-catalogue">B17 · Catalogue completeness check</a></li></ol>
 </div>
@@ -550,7 +550,7 @@ The pattern and its rationale: `docs/governed-agentic-delivery.md` in the agent 
 ## Before you finish
 1. Run the pre-push review (`scripts/pre-push.sh`).
 2. Check your diff against lessons marked BLOCKING in `.agents/rules/lessons/`.
-3. Write your handoff note: `memory-bank/sessions/&lt;YYYY-MM-DD&gt;-&lt;KEY&gt;-&lt;slug&gt;.md`.
+3. Write your handoff note: `memory-bank/sessions/&lt;YYYY-MM-DD&gt;-&lt;HHMM&gt;-&lt;KEY&gt;-&lt;slug&gt;.md`.
 
 ## Close the loop
 When you fix a review comment, ask whether a check in `pre-push-checks/` or a lesson in
@@ -618,7 +618,7 @@ check: &lt;pre-push-checks/&lt;file&gt; | CI job | none&gt;
 
 ## How it&#x27;s caught now
 &lt;The check that flags it, or why no mechanical check is possible.&gt;</pre></div></div>
-<div class="bp" id="bp-handoff"><div class="bp-head"><h3><span class="bp-id">B4</span>Session handoff note</h3><span class="bp-meta">sessions/<date>-<KEY>-<slug>.md · Markdown</span></div><p>Committed on the feature branch, so it merges with the code it describes. The next session reads the newest notes, including notes on open branches.</p><div class="codewrap"><button class="copy" type="button" aria-label="Copy B4">Copy</button><pre class="code"># &lt;KEY&gt;: &lt;short title&gt;
+<div class="bp" id="bp-handoff"><div class="bp-head"><h3><span class="bp-id">B4</span>Session handoff note</h3><span class="bp-meta">sessions/<date>-<time>-<KEY>-<slug>.md · Markdown</span></div><p>Committed on the feature branch, so it merges with the code it describes. The next session reads the newest notes, including notes on open branches.</p><div class="codewrap"><button class="copy" type="button" aria-label="Copy B4">Copy</button><pre class="code"># &lt;KEY&gt;: &lt;short title&gt;
 
 Branch: `&lt;type&gt;/&lt;KEY&gt;-&lt;slug&gt;` · PR: &lt;#number or &quot;not opened yet&quot;&gt;
 
@@ -721,12 +721,14 @@ cd &quot;$(git rev-parse --show-toplevel)&quot; || exit 1
 BASE_REF=&quot;${BASE_REF:-origin/main}&quot;
 CHECKS_DIR=&quot;${PRE_PUSH_CHECKS_DIR:-pre-push-checks}&quot;
 
-if BASE=&quot;$(git merge-base HEAD &quot;$BASE_REF&quot; 2&gt;/dev/null)&quot;; then
-  CHANGED_FILES=&quot;$(git diff --name-only &quot;$BASE&quot;...HEAD)&quot;
-else
-  echo &quot;pre-push: can&#x27;t find $BASE_REF; checking files changed in the last commit only.&quot;
-  CHANGED_FILES=&quot;$(git diff --name-only HEAD~1 HEAD 2&gt;/dev/null || true)&quot;
+# Fail closed: without the base we can&#x27;t see every commit on the branch, and checking only the
+# last commit would silently miss violations in earlier ones.
+if ! BASE=&quot;$(git merge-base HEAD &quot;$BASE_REF&quot; 2&gt;/dev/null)&quot;; then
+  echo &quot;pre-push: can&#x27;t find the base ref $BASE_REF, so the branch&#x27;s full diff can&#x27;t be checked.&quot;
+  echo &quot;Run &#x27;git fetch origin&#x27;, or set BASE_REF to the branch this one targets.&quot;
+  exit 1
 fi
+CHANGED_FILES=&quot;$(git diff --name-only &quot;$BASE&quot;...HEAD)&quot;
 export CHANGED_FILES
 
 shopt -s nullglob
@@ -770,7 +772,7 @@ if [ -n &quot;$hits&quot; ]; then
   echo &quot;Capture the output first, then take the first line.&quot;
   exit 1
 fi</pre></div></div>
-<div class="bp" id="bp-ticket"><div class="bp-head"><h3><span class="bp-id">B9</span>CI: work-item reference guard</h3><span class="bp-meta">scripts/work-item-guard.sh · Bash, called from CI</span></div><p>Blocks a merge unless the branch or title carries a real ticket key. The opt-out is a visible label, not a branch-name pattern. Pattern-based opt-outs are how agent branches slipped past this gate. It's a script, so GitHub Actions and Azure Pipelines can both call it.</p><div class="codewrap"><button class="copy" type="button" aria-label="Copy B9">Copy</button><pre class="code">#!/usr/bin/env bash
+<div class="bp" id="bp-ticket"><div class="bp-head"><h3><span class="bp-id">B9</span>CI: work-item reference guard</h3><span class="bp-meta">scripts/work-item-guard.sh · Bash, called from CI</span></div><p>Blocks a merge unless the branch or title carries a real ticket key. The opt-out is a visible label, not a branch-name pattern. Pattern-based opt-outs are how agent branches slipped past this gate. It's a script, so GitHub Actions and Azure Pipelines can both call it. Run it from the base branch's copy, never the PR's, so a PR can't weaken the check that is judging it.</p><div class="codewrap"><button class="copy" type="button" aria-label="Copy B9">Copy</button><pre class="code">#!/usr/bin/env bash
 # Work-item reference guard: blocks a merge unless the branch name or PR title carries a real
 # work-item key. The only opt-out is a visible label. Don&#x27;t exempt branch-name patterns such as
 # agent/* or ai/*: that&#x27;s how agent pull requests slip past both this gate and the review gate.
@@ -786,7 +788,9 @@ set -euo pipefail
 
 HEAD_REF=&quot;${HEAD_REF#refs/heads/}&quot;
 PREFIX=&quot;$(printf &#x27;%s&#x27; &quot;${WORK_ITEM_PREFIX:-PROJ}&quot; | tr -cd &#x27;A-Za-z0-9&#x27;)&quot;
-KEY=&quot;(^|[^A-Za-z0-9])${PREFIX}-[1-9][0-9]*([^0-9]|$)&quot;
+# Same boundaries as the closure parser&#x27;s \b: a key must not touch letters, digits or &quot;_&quot;,
+# so PROJ-12abc or XPROJ-12 never count as PROJ-12.
+KEY=&quot;(^|[^A-Za-z0-9_])${PREFIX}-[1-9][0-9]*([^A-Za-z0-9_]|$)&quot;
 OPT_OUT=&quot;${OPT_OUT_LABEL:-governance}&quot;
 AUTOMATION=&quot;${AUTOMATION_BRANCHES:-^(dependabot|renovate)/|^release-please--}&quot;
 
@@ -808,14 +812,15 @@ exit 1
 # ------------------------------------------------------------------
 # CI step that calls it
 # ------------------------------------------------------------------
-# In CI (GitHub Actions). Pass PR values through env, never ${{ }} inside run:
+# In CI, run the script from a checkout of the BASE commit, never from the PR it&#x27;s judging
+# (see the kit&#x27;s CI definitions). Pass PR values through env, never ${{ }} inside run:
 - name: Work-item reference
   env:
     HEAD_REF: ${{ github.event.pull_request.head.ref }}
     PR_TITLE: ${{ github.event.pull_request.title }}
     LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
     WORK_ITEM_PREFIX: ${{ vars.WORK_ITEM_PREFIX || &#x27;PROJ&#x27; }}
-  run: bash scripts/agent-governance/work-item-guard.sh</pre></div><p>Pass values in through <code>env</code>, never by interpolating <code>${{ }}</code> straight into the script. A pull request title is user input, and interpolating it is a script-injection hole.</p></div>
+  run: bash &quot;$GOV/work-item-guard.sh&quot;   # GOV = the base checkout&#x27;s scripts/agent-governance</pre></div><p>Pass values in through <code>env</code>, never by interpolating <code>${{ }}</code> straight into the script. A pull request title is user input, and interpolating it is a script-injection hole.</p></div>
 <div class="bp" id="bp-closure"><div class="bp-head"><h3><span class="bp-id">B10</span>Closure-declaration parser</h3><span class="bp-meta">scripts/closure-keys.mjs · Node</span></div><p>One parser, used by CI in guard mode, by the pre-push hook, and by the post-merge job that transitions tickets. Only an explicit "Closes" line closes anything.</p><div class="codewrap"><button class="copy" type="button" aria-label="Copy B10">Copy</button><pre class="code">#!/usr/bin/env node
 // Closure-declaration parser: decides which work items a pull request closes.
 // One parser for every caller: the CI guard, the pre-push hook and the post-merge job.
@@ -826,18 +831,23 @@ exit 1
 //
 // Work-item keys look like &lt;PREFIX&gt;-&lt;n&gt;. Set WORK_ITEM_PREFIX (default &quot;PROJ&quot;) for your tracker
 // project, e.g. WORK_ITEM_PREFIX=ABC. Rules:
-//   - every key in the branch name or title needs a body line starting &quot;Closes|Fixes|Resolves &lt;KEY&gt;&quot;
-//     or &quot;Part of &lt;KEY&gt;&quot;, never both;
+//   - every key in the branch name or title needs a body line starting &quot;Closes &lt;KEY&gt;&quot; or
+//     &quot;Part of &lt;KEY&gt;&quot;, never both. &quot;Fixes&quot;/&quot;Resolves&quot; are deliberately not accepted: one closing
+//     verb keeps the contract unambiguous for people and for the post-merge job;
 //   - only &quot;Closes&quot; lines close a work item on merge;
 //   - any other hyphenated key in the body is an error: write it &quot;&lt;PREFIX&gt; &lt;n&gt;&quot; so the tracker&#x27;s
 //     integration doesn&#x27;t act on a mention.
-const args = Object.fromEntries(process.argv.slice(2).map(a =&gt; a.replace(/^--/, &quot;&quot;).split(&quot;=&quot;)));
+// Split each --name=value on the FIRST &quot;=&quot;, so values (e.g. a PR title) may contain &quot;=&quot;.
+const args = Object.fromEntries(process.argv.slice(2).map(a =&gt; {
+  const s = a.replace(/^--/, &quot;&quot;), i = s.indexOf(&quot;=&quot;);
+  return i &lt; 0 ? [s, &quot;&quot;] : [s.slice(0, i), s.slice(i + 1)];
+}));
 const body = await new Promise(r =&gt; { let s = &quot;&quot;; process.stdin.on(&quot;data&quot;, d =&gt; s += d).on(&quot;end&quot;, () =&gt; r(s)); });
 
 const PREFIX = (process.env.WORK_ITEM_PREFIX || &quot;PROJ&quot;).replace(/[^A-Za-z0-9]/g, &quot;&quot;);
 const KEY_SRC = `${PREFIX}-[1-9]\\d*`;
 const KEY = new RegExp(`\\b${KEY_SRC}\\b`, &quot;g&quot;);
-const DECL = new RegExp(`^\\s*(Closes|Fixes|Resolves|Part of)\\s+(${KEY_SRC})\\b`, &quot;i&quot;);
+const DECL = new RegExp(`^\\s*(Closes|Part of)\\s+(${KEY_SRC})\\b`, &quot;i&quot;);
 
 const primary = new Set([...(args.branch ?? &quot;&quot;).matchAll(KEY), ...(args.title ?? &quot;&quot;).matchAll(KEY)].map(m =&gt; m[0]));
 const closes = new Set(), partOf = new Set();
@@ -863,7 +873,7 @@ if (args.mode === &quot;close&quot;) {
 }
 if (errors.length) { errors.forEach(e =&gt; console.error(e)); process.exit(1); }
 console.log(&quot;Closure declaration OK.&quot;);</pre></div></div>
-<div class="bp" id="bp-classify"><div class="bp-head"><h3><span class="bp-id">B11</span>Agent classifier and second-reader gate</h3><span class="bp-meta">review-gate.sh + count-approvals.mjs · Bash, Node</span></div><p>Fixes pitfall 3. Every gate uses one definition of "agent-authored", and the second-reader rule keys on the paths changed, not only on who pushed. The approval counter takes each reviewer's latest review, so a later "changes requested" outranks an earlier approval.</p><div class="codewrap"><button class="copy" type="button" aria-label="Copy B11">Copy</button><pre class="code">#!/usr/bin/env bash
+<div class="bp" id="bp-classify"><div class="bp-head"><h3><span class="bp-id">B11</span>Agent classifier and second-reader gate</h3><span class="bp-meta">review-gate.sh + count-approvals.mjs · Bash, Node</span></div><p>Fixes pitfall 3. Every gate uses one definition of "agent-authored", and the second-reader rule keys on the paths changed, not only on who pushed. The approval counter takes each reviewer's latest review, so a later "changes requested" outranks an earlier approval, and it only counts approvals given on the PR's current head commit. Changes to the gates themselves, and to CI definitions on any platform, always count as high-risk.</p><div class="codewrap"><button class="copy" type="button" aria-label="Copy B11">Copy</button><pre class="code">#!/usr/bin/env bash
 # Second-reader gate. Requires an approving review from someone other than the author when a change
 # is agent-authored OR touches a high-risk path. It keys on what changed, not only on who pushed:
 # agent sessions often push under an engineer&#x27;s own identity, so an author-only gate never fires.
@@ -887,7 +897,9 @@ console.log(&quot;Closure declaration OK.&quot;);</pre></div></div>
 #   /data/signed-records/   @org/domain-reviewers
 set -euo pipefail
 
-HIGH_RISK=&quot;${HIGH_RISK_PATHS:-^(migrations/|src/auth/|src/billing/|data/signed-records/|ci/workflows/|\.github/workflows/)}&quot;
+# Default high-risk paths cover CI definitions for every supported platform and the governance
+# code itself: a change to a gate must never be able to skip that gate&#x27;s own review.
+HIGH_RISK=&quot;${HIGH_RISK_PATHS:-^(migrations/|src/auth/|src/billing/|data/signed-records/|\.github/|ci/|pipelines/|\.azure-pipelines/|azure-pipelines\.ya?ml$|\.gitlab-ci\.yml$|scripts/agent-governance/|hooks/|CODEOWNERS$)}&quot;
 AGENT_BRANCH=&quot;${AGENT_BRANCH_PATTERN:-^(agent|ai)/}&quot;
 AGENT_FOOTER=&quot;${AGENT_FOOTER_PATTERN:-generated (with|by) }&quot;
 
@@ -918,14 +930,19 @@ echo &quot;Review gate OK.&quot;
 // Counts current approvals from people other than the author, for review-gate.sh&#x27;s APPROVALS input.
 //
 // usage:
-//   gh api --paginate repos/&lt;owner&gt;/&lt;repo&gt;/pulls/&lt;n&gt;/reviews | count-approvals.mjs --format=github --author=&lt;login&gt;
+//   gh api --paginate repos/&lt;owner&gt;/&lt;repo&gt;/pulls/&lt;n&gt;/reviews \
+//     | count-approvals.mjs --format=github --author=&lt;login&gt; --commit=&lt;head sha&gt;
 //   curl .../pullRequests/&lt;id&gt;?api-version=7.1           | count-approvals.mjs --format=ado
 //
 // github: each reviewer&#x27;s LATEST non-comment review counts, so a later &quot;changes requested&quot;
 //         outranks an earlier approval. Bot reviews and the author&#x27;s own review never count.
+//         With --commit, an approval counts only if it was given on that commit, so new commits
+//         pushed after an approval need a fresh one, whether or not the repo dismisses stale
+//         reviews. Always pass the PR head SHA in CI.
 //         Accepts one JSON array or several concatenated arrays (gh --paginate output).
 // ado:    reviewers with vote 10 (approved) or 5 (approved with suggestions), excluding the PR
-//         creator and group (container) reviewers.
+//         creator and group (container) reviewers. Azure Repos has no per-commit vote, so also turn
+//         on the branch policy &quot;Reset all approval votes when there are new changes&quot;.
 const arg = n =&gt; (process.argv.find(a =&gt; a.startsWith(`--${n}=`)) ?? &quot;&quot;).split(&quot;=&quot;).slice(1).join(&quot;=&quot;);
 const format = arg(&quot;format&quot;) || &quot;github&quot;;
 const raw = await new Promise(r =&gt; { let s = &quot;&quot;; process.stdin.on(&quot;data&quot;, d =&gt; s += d).on(&quot;end&quot;, () =&gt; r(s)); });
@@ -945,7 +962,7 @@ function parseConcatenatedArrays(text) {
 
 let count = 0;
 if (format === &quot;github&quot;) {
-  const author = arg(&quot;author&quot;);
+  const author = arg(&quot;author&quot;), commit = arg(&quot;commit&quot;);
   const latest = new Map();
   for (const r of parseConcatenatedArrays(raw)) {
     if (!r?.user || r.user.type === &quot;Bot&quot; || r.user.login === author) continue;
@@ -953,7 +970,7 @@ if (format === &quot;github&quot;) {
     const prev = latest.get(r.user.login);
     if (!prev || new Date(r.submitted_at) &gt;= new Date(prev.submitted_at)) latest.set(r.user.login, r);
   }
-  count = [...latest.values()].filter(r =&gt; r.state === &quot;APPROVED&quot;).length;
+  count = [...latest.values()].filter(r =&gt; r.state === &quot;APPROVED&quot; &amp;&amp; (!commit || r.commit_id === commit)).length;
 } else if (format === &quot;ado&quot;) {
   const pr = JSON.parse(raw);
   const creator = pr.createdBy?.id;
@@ -979,8 +996,10 @@ const files = (await new Promise(r =&gt; { let s = &quot;&quot;; process.stdin.o
   .split(/\r?\n/).map(f =&gt; f.trim()).filter(Boolean);
 
 const DOCS = new RegExp(process.env.DOCS_PATHS || String.raw`\.(md|mdx|txt)$|^docs/|^sessions/`);
+// CI definitions for every supported platform, the governance code and dependency manifests always
+// get the full suite, so a change to CI control can never ride a lighter tier.
 const ALWAYS_FULL = new RegExp(process.env.ALWAYS_FULL_PATHS ||
-  String.raw`^(migrations/|src/auth/|src/billing/|ci/workflows/|\.github/workflows/|package(-lock)?\.json$|.*\.lock$)`);
+  String.raw`^(migrations/|src/auth/|src/billing/|\.github/|ci/|pipelines/|\.azure-pipelines/|azure-pipelines\.ya?ml$|\.gitlab-ci\.yml$|scripts/agent-governance/|hooks/|CODEOWNERS$)|(^|/)(package(-lock)?\.json|[\w.-]*\.lockb?)$`);
 const LIGHT_MAX_FILES = Number(process.env.LIGHT_MAX_FILES || 25);
 
 const TIERS = {

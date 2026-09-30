@@ -9,7 +9,7 @@ human approval and an incident feedback loop, from ticket to merge.
   material as a standalone page, with every boilerplate inline. It contains no organisation-specific
   detail.
 
-Every script has tests: `tests/run-tests.sh` runs 65 pass/fail cases in a throwaway repository, and
+Every script has tests: `tests/run-tests.sh` runs 78 pass/fail cases in a throwaway repository, and
 CI runs them plus ShellCheck on every push. The two CI definitions parse and call only those scripts,
 but haven't yet run on a live GitHub or Azure DevOps project. Run each once on a test pull request
 before making it a required check.
@@ -70,16 +70,36 @@ be tested in place. Add a case whenever you change a script.
 | `WORK_ITEM_PREFIX` | work-item guard, closure parser | `PROJ` (keys like `PROJ-123`) |
 | `OPT_OUT_LABEL` | work-item guard | `governance` |
 | `AUTOMATION_BRANCHES` | work-item guard | dependabot, renovate, release-please branches |
-| `HIGH_RISK_PATHS` | review gate | migrations, auth, billing, signed records, CI definitions |
+| `HIGH_RISK_PATHS` | review gate | migrations, auth, billing, signed records, CI definitions for every supported platform, governance scripts, hooks, CODEOWNERS |
 | `AGENT_BRANCH_PATTERN`, `AGENT_FOOTER_PATTERN` | review gate | `^(agent\|ai)/`; `generated (with\|by) ` |
-| `DOCS_PATHS`, `ALWAYS_FULL_PATHS`, `LIGHT_MAX_FILES` | CI tier | docs/markdown; security paths + lockfiles; 25 |
+| `DOCS_PATHS`, `ALWAYS_FULL_PATHS`, `LIGHT_MAX_FILES` | CI tier | docs/markdown; security paths, CI definitions, governance scripts, manifests and lockfiles; 25 |
 | `RULE_DOCS`, `CI_DIRS`, `PATH_ROOTS` | rule-reference verifier | `AGENTS.md,rules,.agents/rules`; common CI folders |
-| `BASE_REF`, `PRE_PUSH_CHECKS_DIR` | pre-push runner | `origin/main`, `pre-push-checks` |
+| `BASE_REF`, `PRE_PUSH_CHECKS_DIR` | pre-push runner | `origin/main` (fails closed if missing: fetch it or set this), `pre-push-checks` |
 | `CATALOGUE_CONFIG` | catalogue check | `catalogues.json` |
 
 **Trackers.** The closure parser and work-item guard handle Jira-style keys (`PROJ-123`). With
 GitHub Issues (`#123`) or Azure Boards (`AB#123`), keep the platform's native linking and turn those
 two jobs off. The other gates don't depend on the tracker.
+
+## Tamper resistance
+
+A gate that runs code from the pull request it's judging can be switched off by that pull request.
+Both CI definitions avoid this:
+
+- **Trusted gate code.** The gate scripts run from a checkout of the base (target) branch. The PR
+  checkout is only data: the diff and the rule files. A PR that changes a gate is judged by the old
+  gate. On the first PR that introduces the kit there's nothing to trust yet, so that run uses the
+  PR's copy and says so in a warning.
+- **Gate changes are high-risk.** The default high-risk and always-full paths include the governance
+  scripts, hooks and every supported CI location (`.github/`, `ci/`, `pipelines/`,
+  `.azure-pipelines/`, `azure-pipelines.yml`, `.gitlab-ci.yml`, `CODEOWNERS`). A change to any of
+  them needs a second reader and can't ride a lighter CI tier.
+- **Approvals are tied to the head commit.** On GitHub, an approval counts only if it was given on the
+  PR's current head commit, so pushing after an approval needs a fresh one. On Azure Repos votes
+  aren't per-commit, so turn on "Reset all approval votes when there are new changes".
+- **Back it up natively.** Add CODEOWNERS (GitHub) or a required, path-filtered "Automatically included
+  reviewers" policy (Azure Repos) on `scripts/agent-governance/` and the CI definitions, and make the
+  gate job a required check.
 
 ## Testing the kit
 

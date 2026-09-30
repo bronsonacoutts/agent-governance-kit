@@ -14,7 +14,9 @@ set -euo pipefail
 
 HEAD_REF="${HEAD_REF#refs/heads/}"
 PREFIX="$(printf '%s' "${WORK_ITEM_PREFIX:-PROJ}" | tr -cd 'A-Za-z0-9')"
-KEY="(^|[^A-Za-z0-9])${PREFIX}-[1-9][0-9]*([^0-9]|$)"
+# Same boundaries as the closure parser's \b: a key must not touch letters, digits or "_",
+# so PROJ-12abc or XPROJ-12 never count as PROJ-12.
+KEY="(^|[^A-Za-z0-9_])${PREFIX}-[1-9][0-9]*([^A-Za-z0-9_]|$)"
 OPT_OUT="${OPT_OUT_LABEL:-governance}"
 AUTOMATION="${AUTOMATION_BRANCHES:-^(dependabot|renovate)/|^release-please--}"
 

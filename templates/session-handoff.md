@@ -24,7 +24,10 @@ done | sort -u
 
 ## Writing
 
-File name: `<YYYY-MM-DD>-<KEY>-<short-slug>.md`, e.g. `2026-09-30-PROJ-412-expired-link-message.md`.
+File name: `<YYYY-MM-DD>-<HHMM>-<KEY>-<short-slug>.md`, e.g.
+`2026-09-30-1415-PROJ-412-expired-link-message.md`. The start time (24-hour) keeps names unique
+when two sessions work the same item on the same day. If a file with your name already exists,
+add a letter (`...-1415b-...`) rather than writing into it.
 With no work item, drop the key. If you pick the work up again later, update your own file. Don't
 edit another session's file: write a new one that refers to it.
 
