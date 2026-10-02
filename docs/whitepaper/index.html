@@ -393,6 +393,7 @@ secrets-cli run -- npm run sync</pre><p class="ex-cap">Agents never create a tok
 <tr><td>Deployment pipeline success</td><td class="num">~65% of runs</td><td>Improving, but the weakest number here.</td></tr>
 </table>
 </div>
+<p><strong>Provenance.</strong> These are one team's own measurements from repository and tracker data over a single month. They describe this team, not a benchmark, and are not a claim about your results. The rating below is the opinion of one review the team commissioned, not a measurement.</p>
 <p>An independent technical review rated this practice 4 out of 5, against about 2.5 for a typical company at the same stage, where AI assistants are usually used ad hoc with no written governance. The same review rated our security and test enforcement well below that, which is the subject of the next section.</p>
 </section>
 
@@ -498,6 +499,16 @@ pre-commit: repository health
 </ol>
 </section>
 
+<section id="roles" class="col">
+<h2>Coordinating many sessions</h2>
+<p>The controls above stop a single bad change. They don't stop three good changes colliding. Once several agent sessions run at once, two more problems appear: two sessions edit the same migration or lockfile, and every pull request re-runs the full CI suite. We fixed both with two named coordinator roles, each held by exactly one session at a time:</p>
+<ul>
+<li><strong>Merge Trains</strong> decides merge order and who owns each shared file, batches frozen pull requests that share no files into one CI run, and merges on green. Every work session checks in before it edits, when its PR opens, and when it is frozen.</li>
+<li><strong>Dispatch</strong> turns the backlog into small, conflict-aware session briefs, fixes tracker hygiene first, and starts sessions only on a human's go-ahead. It never merges or triggers CI.</li>
+</ul>
+<p>Both hand over to a fresh session on their own when their context gets long, writing the state to a file outside every working tree. The generalised playbooks are in the repository under <code>templates/roles/</code>. They are prose, not scripts, so the kit's test suite does not cover them.</p>
+</section>
+
 <section id="start" class="col">
 <h2>Starting out</h2>
 <p>For a team beginning this journey, this order gives the most protection for the least effort:</p>
@@ -519,7 +530,7 @@ pre-commit: repository health
 <section id="kit">
 <div class="col">
 <h2>Boilerplate kit</h2>
-<p>Starting points for each control in this paper. They are deliberately generic: rename the ticket prefix (<code>PROJ</code>), the paths and the CI syntax to match your stack. Every script here has a test suite of 90 pass-and-fail cases, run against a throwaway repository, and passes ShellCheck. The CI definitions that call them run the gate scripts from the base branch, not from the pull request being judged, and have not yet run on a live project. They are starting points, not hardened products: read each one before you adopt it, and keep the tests with it.</p>
+<p>Starting points for each control in this paper. They are deliberately generic: rename the ticket prefix (<code>PROJ</code>), the paths and the CI syntax to match your stack. Every script here has a test suite of 89 pass-and-fail cases, run against a throwaway repository, and passes ShellCheck. The CI definitions that call them run the gate scripts from the base branch, not from the pull request being judged, and have not yet run on a live project. They are starting points, not hardened products: read each one before you adopt it, and keep the tests with it.</p>
 <p>Adopt them in the order of the "Starting out" list above. B1, B6, B9 and B13 give the most protection for the least effort.</p>
 <ol class="kit-index"><li><a href="#bp-root">B1 · Root agent instruction file</a></li><li><a href="#bp-rule">B2 · Topic rule</a></li><li><a href="#bp-lesson">B3 · Lesson learned</a></li><li><a href="#bp-handoff">B4 · Session handoff note</a></li><li><a href="#bp-pr">B5 · Pull request description</a></li><li><a href="#bp-branch">B6 · Branch guard for agent edits</a></li><li><a href="#bp-health">B7 · Repository health check</a></li><li><a href="#bp-prepush">B8 · Pre-push runner and a check file</a></li><li><a href="#bp-ticket">B9 · CI: work-item reference guard</a></li><li><a href="#bp-closure">B10 · Closure-declaration parser</a></li><li><a href="#bp-classify">B11 · Agent classifier and second-reader gate</a></li><li><a href="#bp-tier">B12 · CI tier classifier</a></li><li><a href="#bp-verify">B13 · Rule-reference verifier</a></li><li><a href="#bp-routing">B14 · Model routing config</a></li><li><a href="#bp-queue">B15 · Professional review-queue entry</a></li><li><a href="#bp-coord">B16 · Shared-resource coordination message</a></li><li><a href="#bp-catalogue">B17 · Catalogue completeness check</a></li></ol>
 </div>
@@ -1191,7 +1202,7 @@ console.log(`Catalogues complete (${CATALOGUES.length} checked).`);</pre></div><
 
 
 <footer>
-This paper describes one team's practice and is shared for discussion. Figures are approximate and drawn from a single month. Examples and boilerplates are generalised and use invented names and keys. The paper contains no product, customer or security-defect detail. The boilerplates may be freely adapted.
+This paper describes one team's practice and is shared for discussion. The kit it describes is open source (MIT) at github.com/bronsonacoutts/agent-governance-kit; the Markdown version of this paper there is canonical. Figures are approximate and drawn from a single month. Examples and boilerplates are generalised and use invented names and keys. The paper contains no product, customer or security-defect detail. The boilerplates may be freely adapted under the MIT licence.
 </footer>
 </div>
 
