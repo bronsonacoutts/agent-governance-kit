@@ -1,7 +1,17 @@
 # Contributing
 
-Thanks for helping. The kit's value is that every control is checked, so contributions are held to
-that bar.
+Thanks for helping. Every kind of contribution counts:
+
+- **Questions, ideas and "here's how we use it"** go in
+  [Discussions](https://github.com/bronsonacoutts/agent-governance-kit/discussions).
+- **Bugs and confusing steps** go in [Issues](https://github.com/bronsonacoutts/agent-governance-kit/issues).
+- **A way past a gate** is a security report, not an issue: see [SECURITY.md](SECURITY.md).
+- **Code and docs** come as pull requests from a fork.
+
+Good first pull requests: a GitLab CI definition, support for `#123`-style issue links in the two
+key checks, a new pre-push check, or a clearer step in the README.
+
+The kit's value is that every control is checked, so code contributions are held to that bar.
 
 ## Ground rules
 
@@ -23,7 +33,8 @@ bash tests/run-tests.sh
 find . -path ./.git -prune -o -name '*.sh' -print0 | xargs -0 shellcheck
 ```
 
-Both must pass. Use a branch name and PR title with a work-item style key if you can; this repo
+Both must pass. Fork the repo, branch, and open a pull request against `main`. One reviewer
+and the `test` check are required to merge. Use a work-item style key in the branch name if you can; this repo
 follows its own rules where it makes sense.
 
 ## Reporting a bypass

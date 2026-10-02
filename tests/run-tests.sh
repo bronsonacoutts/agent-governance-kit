@@ -50,7 +50,10 @@ echo "branch-guard.mjs"
 expect 2 "blocks edits on main" node scripts/branch-guard.mjs
 git switch -q -c feature/PROJ-1-x
 expect 0 "allows edits on a feature branch" node scripts/branch-guard.mjs
+git switch -q --detach main
+expect 0 "allows edits on a detached HEAD" node scripts/branch-guard.mjs
 git switch -q main
+expect 2 "blocks main in a repo with no commits yet" bash -c 'd="$(mktemp -d)" && git init -q -b main "$d" && cd "$d" && node "$1"' _ "$PWD/scripts/branch-guard.mjs"
 
 echo "git-health.sh"
 expect 0 "healthy HEAD passes --check" bash scripts/git-health.sh --check
@@ -213,6 +216,30 @@ expect 0 "stdin: pushing HEAD is checked normally" bash -c "echo 'refs/heads/fix
 expect N "stdin: pushing a ref other than HEAD stops" bash -c "echo 'refs/heads/main $M refs/heads/main $Z' | bash scripts/pre-push.sh"
 expect 0 "stdin: a branch deletion is ignored" bash -c "echo '(delete) $Z refs/heads/old $M' | bash scripts/pre-push.sh"
 git switch -q main
+
+echo "install.sh"
+INSTALL="$(cd "$KIT/.." && pwd)/install.sh"
+T="$WORK/target"; git init -q -b main "$T"
+expect N "refuses a folder that isn't a git repo" bash "$INSTALL" "$WORK/nope"
+expect N "refuses a bad prefix" bash "$INSTALL" "$T" --prefix "AB-1"
+expect 0 "installs into an existing repo" bash "$INSTALL" "$T" --prefix ABC --hooks --roles
+for f in AGENTS.md scripts/branch-guard.mjs scripts/agent-governance/work-item-guard.sh \
+         scripts/agent-governance/closure-keys.mjs .github/workflows/agent-governance.yml \
+         .github/PULL_REQUEST_TEMPLATE.md .claude/settings.json scripts/pre-push.sh \
+         pre-push-checks/example-pipe-hides-exit-code.sh .agents/roles/merge-trains.md; do
+  expect 0 "adds $f" test -f "$T/$f"
+done
+expect 0 "sets the prefix in the workflow" grep -qF "|| 'ABC'" "$T/.github/workflows/agent-governance.yml"
+expect 0 "settings.json is valid JSON" node -e "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))" "$T/.claude/settings.json"
+echo "# mine" > "$T/AGENTS.md"
+expect 0 "re-run succeeds" bash "$INSTALL" "$T"
+expect 0 "re-run keeps existing files" grep -qx "# mine" "$T/AGENTS.md"
+expect 2 "installed guard blocks main" bash -c 'cd "$1" && node scripts/branch-guard.mjs' _ "$T"
+expect 0 "installed work-item guard uses the prefix" env HEAD_REF=fix/ABC-7-x PR_TITLE=t WORK_ITEM_PREFIX=ABC bash "$T/scripts/agent-governance/work-item-guard.sh"
+A="$WORK/azure"; git init -q -b main "$A"; git -C "$A" remote add origin https://dev.azure.com/o/p/_git/r
+expect 0 "detects Azure from the remote" bash "$INSTALL" "$A" --prefix XYZ
+expect 0 "azure pipeline gets the prefix" grep -qx "    value: XYZ" "$A/pipelines/agent-governance.yml"
+expect N "azure install adds no GitHub workflow" test -e "$A/.github/workflows/agent-governance.yml"
 
 echo
 echo "passed $PASS, failed $FAIL"

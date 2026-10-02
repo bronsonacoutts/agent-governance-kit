@@ -639,7 +639,7 @@ The last item is the one we would move to the top if we started again.
 
 ## Boilerplate kit
 
-The copy-ready files for every control in this paper are in this kit, with an 89-case test suite.
+The copy-ready files for every control in this paper are in this kit, with a test suite of over 100 cases.
 Start with the [kit README](../README.md): it covers the adoption order, configuration and testing.
 
 | # | Boilerplate | File |

@@ -3,13 +3,10 @@
 [![Test kit](https://github.com/bronsonacoutts/agent-governance-kit/actions/workflows/test.yml/badge.svg)](https://github.com/bronsonacoutts/agent-governance-kit/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**Rules an AI agent can ignore aren't governance. This kit makes them mechanical.**
+**Rules an AI agent can ignore aren't governance. This kit turns them into checks it can't skip.**
 
-Hooks, CI gates, templates and coordinator playbooks for governing AI coding agents from ticket to
-merge. Extracted from a two-engineer team that ships roughly three in four of its pull requests
-through agent sessions. The scripts are plain bash and Node 18+ and gate the pull request, so they
-apply to any agent (or human) that opens one. The coordinator roles assume an agent tool with
-named sessions and session-to-session messaging; they were developed on Claude Code.
+Hooks and CI checks for AI coding agents, from ticket to merge. One command installs them into an
+existing repo. Built by a two-person team whose agents write most of its pull requests.
 
 ```text
 $ HEAD_REF=agent/fix-login PR_TITLE="Fix login" bash scripts/work-item-guard.sh
@@ -17,44 +14,98 @@ $ HEAD_REF=agent/fix-login PR_TITLE="Fix login" bash scripts/work-item-guard.sh
 exit=1
 ```
 
-More blocked-PR examples in [`docs/demo.md`](docs/demo.md).
+## Is this for you?
 
-## Who it's for
+**Yes, if any of these are true:**
 
-| If you are... | You probably have this problem | The kit gives you |
-|---|---|---|
-| **A small team or solo dev leaning on coding agents** | Output outruns review. Nobody can read 50+ PRs a week line by line. | Gates that check the boring things for you, so human attention goes to judgement. |
-| **An engineering lead rolling agents out to a team** | Every dev prompts differently; "please follow the rules" isn't enforceable. | One `AGENTS.md` pattern plus CI checks that fail when the rule is broken. |
-| **A regulated or audit-sensitive shop** (health, safety, finance, legal) | You must show who changed what, why, and who approved it, years later. | Work-item traceability on every change, explicit closure lines, approvals tied to the exact commit. |
-| **A platform / DevEx / security engineer** | Agents can edit CI config, hooks and the gates themselves. | Gates that run from the base branch, so a PR can't switch off the check judging it. |
-| **Someone running many agent sessions in parallel** | Two sessions edit the same migration; every PR re-runs the full CI suite. | Merge Trains and Dispatch coordinator roles: one scheduler, claimed files, one CI run per batch. |
+- AI agents open pull requests in your repo.
+- You can't read every agent PR line by line.
+- You need to show later which ticket a change was for and who approved it.
+- You run more than one agent session at a time.
 
-## Problems it solves
+**Probably not, if:**
 
-| Problem you'll recognise | What fixes it here |
+- Humans open every PR and AI only autocompletes or chats.
+- You don't use pull requests or CI.
+
+## What it does
+
+| Without it | With it |
 |---|---|
-| Agent pushes straight to `main` | `hooks/branch-guard.mjs` blocks the edit |
-| PR with no ticket, so no audit trail | `work-item-guard.sh`; the only opt-out is a visible label |
-| A ticket auto-closes because someone wrote "fixes PROJ-9" in passing | `closure-keys.mjs`: only an explicit `Closes KEY` line closes |
-| "Lighter CI" label quietly skips tests on a risky change | `ci-tier.mjs`: the label is a request, the diff decides |
-| Agent-written PR merges with no second reader | `review-gate.sh`: keyed on risky paths and agent authorship |
-| Stale approval survives a new push | `count-approvals.mjs`: only approvals on the current head count |
-| A PR edits the gate that's judging it | Gates run from the base branch; gate files are high-risk paths |
-| Written rules that point at checks that don't exist | `verify-rule-refs.mjs` fails the build |
-| Same review nit comes back every week | `agent-rule.md` + the "close the loop" step turn it into a check |
-| Parallel sessions corrupt `.git/HEAD` | `git-health.sh` detects and repairs it |
-| Merge queue is a human with a spreadsheet | [`templates/roles/`](templates/roles/): Merge Trains and Dispatch |
+| An agent edits `main` directly | The edit is blocked |
+| A PR has no ticket | CI fails until it has one |
+| "fixes PROJ-9" in passing closes a ticket | Only a `Closes PROJ-9` line closes it |
+| A "light CI" label skips tests on a risky change | The diff decides the CI tier, not the label |
+| An agent PR merges with nobody else reading it | Risky paths need a second reader |
+| An approval survives a later push | Only approvals on the latest commit count |
+| A PR switches off the check judging it | Checks run from the base branch |
+| A rule names a check that doesn't exist | CI fails |
+| Parallel sessions collide on the same files | One coordinator session decides who owns what |
 
-## Try it in two minutes
+See it block real PRs in [`docs/demo.md`](docs/demo.md).
+
+## What it requires
+
+- A git repo where changes reach `main` through pull requests.
+- **GitHub Actions** or **Azure Pipelines**.
+- **bash**, **git** and **Node 18+** (on your machine and the CI runner). No packages to install.
+- Work-item keys like `ABC-123` (Jira-style). With GitHub Issues or Azure Boards links, turn off the
+  two key checks; everything else still works.
+- Optional: **Claude Code** for the automatic edit guard. Other agent tools can call the same
+  script from their own pre-edit hook.
+
+## What it entails
+
+The installer only adds files. It never commits, pushes or changes settings, and it skips any file
+you already have.
+
+| Added to your repo | Why |
+|---|---|
+| `AGENTS.md` | Rules every agent session reads. You fill in the blanks. |
+| `.claude/settings.json` | Blocks agent edits while you're on `main` (only created if you don't have one) |
+| `scripts/branch-guard.mjs` | The script that hook runs |
+| `scripts/agent-governance/` | The CI gate scripts |
+| `.github/workflows/agent-governance.yml` or `pipelines/agent-governance.yml` | Runs the gates on every PR |
+| `.github/PULL_REQUEST_TEMPLATE.md` | Closure lines and risk flags (GitHub only) |
+| With `--hooks`: `scripts/git-health.sh`, `scripts/pre-push.sh`, `pre-push-checks/` | The same checks locally, before a push |
+| With `--roles`: `.agents/roles/` | Merge Trains and Dispatch playbooks for many parallel sessions |
+
+Your part afterwards: fill in `AGENTS.md`, merge the PR, and make **Agent governance** a required
+check.
+
+## Quick start
 
 ```bash
-git clone https://github.com/bronsonacoutts/agent-governance-kit && cd agent-governance-kit
-bash tests/run-tests.sh                      # 89 pass/fail cases in a throwaway repo
-HEAD_REF=agent/fix-login PR_TITLE="Fix login" bash scripts/work-item-guard.sh   # blocked
-HEAD_REF=fix/PROJ-42-login PR_TITLE="Fix login" bash scripts/work-item-guard.sh # passes
+git clone https://github.com/bronsonacoutts/agent-governance-kit
+bash agent-governance-kit/install.sh path/to/your-repo --prefix ABC
 ```
 
-Then follow [Adopting it in a repo](#adopting-it-in-a-repo).
+Use your tracker's key prefix for `ABC`. Then, in your repo:
+
+```bash
+git switch -c chore/ABC-1-agent-governance
+git add -A && git commit -m "chore: add agent governance (ABC-1)"
+git push -u origin HEAD     # open a PR with "Closes ABC-1" in the body
+```
+
+After it merges, mark **Agent governance** as a required status check on `main`. Done.
+
+Add `--hooks` for local pre-push checks, `--roles` for the coordinator playbooks, and
+`--platform azure` if auto-detection picks the wrong CI. Re-running is safe.
+
+## Contributing
+
+This kit gets better every time someone finds a way past a gate. Ways to help, from smallest up:
+
+- ⭐ **Star the repo** if it's useful. It helps others find it.
+- 💬 **Say how you use it** in [Discussions](https://github.com/bronsonacoutts/agent-governance-kit/discussions): your stack, your agent tool, what broke.
+- 🐛 **Open an [issue](https://github.com/bronsonacoutts/agent-governance-kit/issues)** for a bug, a confusing step or a missing platform.
+- 🔧 **Send a pull request.** Fork, add a test case to `tests/run-tests.sh`, and open a PR. Good
+  first contributions: a GitLab CI definition, support for `#123`-style issue links, more
+  pre-push checks.
+- 🔒 **Found a way past a gate?** Report it privately: see [SECURITY.md](SECURITY.md).
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) first. It's short.
 
 ## Provenance and honesty
 
@@ -62,8 +113,8 @@ Then follow [Adopting it in a repo](#adopting-it-in-a-repo).
   regulated-domain SaaS product, where agents write most of the code. The scripts, hooks, templates
   and the two coordinator playbooks are generalised from that daily use. Nothing here is a thought
   experiment.
-- **What's tested here.** Every script has tests: `tests/run-tests.sh` runs 89 pass/fail cases in a
-  throwaway repository, and CI runs them plus ShellCheck on every push.
+- **What's tested here.** Every script and the installer have tests: `tests/run-tests.sh` runs over
+  100 pass/fail cases in throwaway repositories, and CI runs them plus ShellCheck on every push.
 - **What isn't proven yet.** The two shipped CI definitions (`ci/github/`, `ci/azure-pipelines/`)
   are generalised ports of the pipelines the team runs. They parse and call only the tested
   scripts, but this public copy hasn't yet been run as a required check on a fresh project. Run each
@@ -85,6 +136,7 @@ Then follow [Adopting it in a repo](#adopting-it-in-a-repo).
 
 | Layer | File | What it does |
 |---|---|---|
+| Setup | [`install.sh`](install.sh) | Installs the kit into an existing repo; adds files only, never overwrites |
 | Rules | [`templates/AGENTS.md`](templates/AGENTS.md) | Root agent instructions: goal, scope, non-negotiables, landmines, where things are |
 | Rules | [`templates/agent-rule.md`](templates/agent-rule.md) | One topic rule or lesson per file, with its reason and the check that enforces it |
 | Rules | [`templates/best-effort-decision.md`](templates/best-effort-decision.md) | Decide now, queue for professional review, never fake a sign-off |
@@ -105,9 +157,10 @@ Then follow [Adopting it in a repo](#adopting-it-in-a-repo).
 | Roles | [`templates/roles/merge-trains.md`](templates/roles/merge-trains.md) | One scheduler session: decides merge order and file ownership, batches frozen PRs into one CI run, merges on green |
 | Roles | [`templates/roles/dispatch.md`](templates/roles/dispatch.md) | One planner session: backlog hygiene, conflict-aware briefs, human-approved task chips |
 
-## Adopting it in a repo
+## Manual setup
 
-Do these in order. The first four give the most protection for the least effort.
+[`install.sh`](install.sh) does steps 1 to 3, and 5 and 7 with `--hooks` and `--roles`. To do
+it by hand, follow these in order. The first four give the most protection for the least effort.
 
 1. Copy `templates/AGENTS.md` to the repo root as `AGENTS.md` and fill it in.
 2. Copy `hooks/branch-guard.mjs` to `scripts/`, and wire it to your agent tool's pre-edit hook. A
@@ -195,4 +248,4 @@ Created and maintained by [Bronson Coutts](https://github.com/bronsonacoutts). T
 developed while building production software with AI agents; this kit is a generalised extraction,
 released under the [MIT licence](LICENSE) as a personal open-source project. The products it was
 developed on are proprietary and are not part of this repository; no code, data or configuration
-from them is included. Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
+from them is included.

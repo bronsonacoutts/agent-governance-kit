@@ -1,0 +1,21 @@
+name: Idea or missing platform
+description: A new gate, a CI platform or tracker the kit doesn't support yet, or a better way to do something.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would it solve?
+      description: The failure you've seen with agents that this would stop.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you add or change?
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Can you help build it?
+      options:
+        - label: I'd be happy to open a pull request for this

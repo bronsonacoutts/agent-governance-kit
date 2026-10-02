@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Questions and "here's how we use it"
+    url: https://github.com/bronsonacoutts/agent-governance-kit/discussions
+    about: Ask a question or share your setup in Discussions.
+  - name: A way past a gate
+    url: https://github.com/bronsonacoutts/agent-governance-kit/security/advisories/new
+    about: Report a gate bypass privately, not as a public issue.
