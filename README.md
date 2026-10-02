@@ -244,8 +244,8 @@ changes from here and re-run the tests there, rather than editing the copy.
 
 ## About
 
-Created and maintained by [Bronson Coutts](https://github.com/bronsonacoutts), founder of
-[Bit Gravy](https://bitgravy.dev). The practice was developed while building software with AI agents at
-Bit Gravy; the kit is a generalised, org-neutral extraction, released under the [MIT licence](LICENSE)
-as a personal open-source project. The products it was developed on are proprietary and are not
-part of this repository; no code, data or configuration from them is included.
+Created and maintained by [Bronson Coutts](https://github.com/bronsonacoutts). The practice was
+developed while building production software with AI agents; this kit is a generalised extraction,
+released under the [MIT licence](LICENSE) as a personal open-source project. The products it was
+developed on are proprietary and are not part of this repository; no code, data or configuration
+from them is included.

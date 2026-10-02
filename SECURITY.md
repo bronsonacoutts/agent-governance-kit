@@ -8,7 +8,7 @@ its gates is a security issue, not just a bug.
 Please **don't open a public issue** for a bypass. Use either:
 
 - GitHub's private reporting: **Security → Report a vulnerability** on this repository; or
-- email bronson@bitgravy.dev with "agent-governance-kit" in the subject.
+- if you can't use that, open a [Discussion](https://github.com/bronsonacoutts/agent-governance-kit/discussions) asking for a private contact, without any detail of the bypass.
 
 Include the script or CI definition, the input that gets past it (a branch name, PR title, label,
 file list or approval sequence is usually enough), and what you expected to be blocked.
