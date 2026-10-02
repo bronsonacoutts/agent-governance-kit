@@ -448,6 +448,8 @@ From one recent month of repository and tracker data:
 | Formal second human approval | under 1% of merged PRs | The main gap. See pitfall 3. |
 | Deployment pipeline success | ~65% of runs | Improving, but the weakest number here. |
 
+**Provenance.** These are one team's own measurements from repository and tracker data over a single month. They describe this team, not a benchmark, and no figure here is a claim about your results. The 4-out-of-5 rating below is the verdict of one review commissioned by the team; it is an opinion, not a measurement.
+
 An independent technical review rated this practice 4 out of 5, against about 2.5 for a typical company at the same stage, where AI assistants are usually used ad hoc with no written governance. The same review rated our security and test enforcement well below that, which is the subject of the next section.
 
 ## Pitfalls
@@ -609,6 +611,15 @@ Moving from "strong with minor gaps" to "exemplary and verified" is mostly about
 1. **Tracker hygiene is checked.** Search-before-create, correct resolutions and no "Done" with open acceptance criteria are checked by automation, not left to good intentions.
 1. **The loop is measured.** Count how many review findings repeat after a lesson exists for them. A falling repeat rate is the evidence that layer 5 works.
 
+## Coordinating many sessions
+
+The controls above stop a single bad change. They don't stop three good changes colliding. Once several agent sessions run at once, two more problems appear: two sessions edit the same migration or lockfile, and every pull request re-runs the full CI suite. We fixed both with two named coordinator roles, each held by exactly one session at a time:
+
+- **Merge Trains** decides merge order and who owns each shared file, batches frozen pull requests that share no files into one CI run, and merges on green. Every work session checks in before it edits, when its PR opens, and when it is frozen.
+- **Dispatch** turns the backlog into small, conflict-aware session briefs, fixes tracker hygiene first, and starts sessions only on a human's go-ahead. It never merges or triggers CI.
+
+Both hand over to a fresh session on their own when their context gets long, writing the state to a file outside every working tree. The generalised playbooks are in [`templates/roles/`](../templates/roles/). They are prose, not scripts, so the kit's test suite does not cover them.
+
 ## Starting out
 
 For a team beginning this journey, this order gives the most protection for the least effort:
@@ -628,7 +639,7 @@ The last item is the one we would move to the top if we started again.
 
 ## Boilerplate kit
 
-The copy-ready files for every control in this paper are in this kit, with a 90-case test suite.
+The copy-ready files for every control in this paper are in this kit, with an 89-case test suite.
 Start with the [kit README](../README.md): it covers the adoption order, configuration and testing.
 
 | # | Boilerplate | File |
@@ -649,8 +660,10 @@ Start with the [kit README](../README.md): it covers the adoption order, configu
 | B15 | Professional review-queue entry | [`best-effort-decision.md`](../templates/best-effort-decision.md) |
 | B16 | Shared-resource coordination message | [`shared-resource-coordination.md`](../templates/shared-resource-coordination.md) |
 | B17 | Catalogue completeness check | [`check-catalogue.mjs`](../scripts/check-catalogue.mjs) |
+| R1 | Merge Trains coordinator role | [`merge-trains.md`](../templates/roles/merge-trains.md) |
+| R2 | Dispatch coordinator role | [`dispatch.md`](../templates/roles/dispatch.md) |
 | CI | The gates as required checks | [GitHub Actions](../ci/github/agent-governance.yml) · [Azure Pipelines](../ci/azure-pipelines/agent-governance.yml) |
 
 An HTML version of this paper, with every boilerplate inline, is in [`whitepaper/index.html`](whitepaper/index.html).
 
-This paper describes one team's practice and is shared for discussion. Figures are approximate and drawn from a single month. Examples and boilerplates are generalised and use invented names and keys. The paper contains no product, customer or security-defect detail. The boilerplates may be freely adapted.
+This paper describes one team's practice and is shared for discussion. Figures are approximate and drawn from a single month. Examples and boilerplates are generalised and use invented names and keys. The paper contains no product, customer or security-defect detail. The kit is open source under the MIT licence at [github.com/bronsonacoutts/agent-governance-kit](https://github.com/bronsonacoutts/agent-governance-kit), and the boilerplates may be freely adapted under it.

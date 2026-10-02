@@ -1,18 +1,85 @@
 # Agent governance kit
 
-A tested kit for governing AI coding agents in a small team: written rules, local hooks, CI gates,
-human approval and an incident feedback loop, from ticket to merge.
+[![Test kit](https://github.com/bronsonacoutts/agent-governance-kit/actions/workflows/test.yml/badge.svg)](https://github.com/bronsonacoutts/agent-governance-kit/actions/workflows/test.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-- **The practice:** [`docs/governed-agentic-delivery.md`](docs/governed-agentic-delivery.md) covers
-  principles, the five control layers, worked examples, results, pitfalls and what to do next.
-- **The shareable paper:** [`docs/whitepaper/index.html`](docs/whitepaper/index.html) has the same
-  material as a standalone page, with every boilerplate inline. It contains no organisation-specific
-  detail.
+**Rules an AI agent can ignore aren't governance. This kit makes them mechanical.**
 
-Every script has tests: `tests/run-tests.sh` runs 90 pass/fail cases in a throwaway repository, and
-CI runs them plus ShellCheck on every push. The two CI definitions parse and call only those scripts,
-but haven't yet run on a live GitHub or Azure DevOps project. Run each once on a test pull request
-before making it a required check.
+Hooks, CI gates, templates and coordinator playbooks for governing AI coding agents from ticket to
+merge. Extracted from a two-engineer team that ships roughly three in four of its pull requests
+through agent sessions. The scripts are plain bash and Node 18+ and gate the pull request, so they
+apply to any agent (or human) that opens one. The coordinator roles assume an agent tool with
+named sessions and session-to-session messaging; they were developed on Claude Code.
+
+```text
+$ HEAD_REF=agent/fix-login PR_TITLE="Fix login" bash scripts/work-item-guard.sh
+::error::No PROJ-<n> key in branch 'agent/fix-login' or the PR title.
+exit=1
+```
+
+More blocked-PR examples in [`docs/demo.md`](docs/demo.md).
+
+## Who it's for
+
+| If you are... | You probably have this problem | The kit gives you |
+|---|---|---|
+| **A small team or solo dev leaning on coding agents** | Output outruns review. Nobody can read 50+ PRs a week line by line. | Gates that check the boring things for you, so human attention goes to judgement. |
+| **An engineering lead rolling agents out to a team** | Every dev prompts differently; "please follow the rules" isn't enforceable. | One `AGENTS.md` pattern plus CI checks that fail when the rule is broken. |
+| **A regulated or audit-sensitive shop** (health, safety, finance, legal) | You must show who changed what, why, and who approved it, years later. | Work-item traceability on every change, explicit closure lines, approvals tied to the exact commit. |
+| **A platform / DevEx / security engineer** | Agents can edit CI config, hooks and the gates themselves. | Gates that run from the base branch, so a PR can't switch off the check judging it. |
+| **Someone running many agent sessions in parallel** | Two sessions edit the same migration; every PR re-runs the full CI suite. | Merge Trains and Dispatch coordinator roles: one scheduler, claimed files, one CI run per batch. |
+
+## Problems it solves
+
+| Problem you'll recognise | What fixes it here |
+|---|---|
+| Agent pushes straight to `main` | `hooks/branch-guard.mjs` blocks the edit |
+| PR with no ticket, so no audit trail | `work-item-guard.sh`; the only opt-out is a visible label |
+| A ticket auto-closes because someone wrote "fixes PROJ-9" in passing | `closure-keys.mjs`: only an explicit `Closes KEY` line closes |
+| "Lighter CI" label quietly skips tests on a risky change | `ci-tier.mjs`: the label is a request, the diff decides |
+| Agent-written PR merges with no second reader | `review-gate.sh`: keyed on risky paths and agent authorship |
+| Stale approval survives a new push | `count-approvals.mjs`: only approvals on the current head count |
+| A PR edits the gate that's judging it | Gates run from the base branch; gate files are high-risk paths |
+| Written rules that point at checks that don't exist | `verify-rule-refs.mjs` fails the build |
+| Same review nit comes back every week | `agent-rule.md` + the "close the loop" step turn it into a check |
+| Parallel sessions corrupt `.git/HEAD` | `git-health.sh` detects and repairs it |
+| Merge queue is a human with a spreadsheet | [`templates/roles/`](templates/roles/): Merge Trains and Dispatch |
+
+## Try it in two minutes
+
+```bash
+git clone https://github.com/bronsonacoutts/agent-governance-kit && cd agent-governance-kit
+bash tests/run-tests.sh                      # 89 pass/fail cases in a throwaway repo
+HEAD_REF=agent/fix-login PR_TITLE="Fix login" bash scripts/work-item-guard.sh   # blocked
+HEAD_REF=fix/PROJ-42-login PR_TITLE="Fix login" bash scripts/work-item-guard.sh # passes
+```
+
+Then follow [Adopting it in a repo](#adopting-it-in-a-repo).
+
+## Provenance and honesty
+
+- **Where it came from.** Extracted from the working practice of a two-person team building a
+  regulated-domain SaaS product, where agents write most of the code. The scripts, hooks, templates
+  and the two coordinator playbooks are generalised from that daily use. Nothing here is a thought
+  experiment.
+- **What's tested here.** Every script has tests: `tests/run-tests.sh` runs 89 pass/fail cases in a
+  throwaway repository, and CI runs them plus ShellCheck on every push.
+- **What isn't proven yet.** The two shipped CI definitions (`ci/github/`, `ci/azure-pipelines/`)
+  are generalised ports of the pipelines the team runs. They parse and call only the tested
+  scripts, but this public copy hasn't yet been run as a required check on a fresh project. Run each
+  once on a test pull request before requiring it.
+- **The numbers.** Figures in the paper are one team's own measurements over one month, not a
+  benchmark. See the note under [Results](docs/governed-agentic-delivery.md#results).
+
+## Read more
+
+- **The practice:** [`docs/governed-agentic-delivery.md`](docs/governed-agentic-delivery.md) is the
+  canonical write-up: principles, the five control layers, worked examples, results, pitfalls and
+  what to do next.
+- **The shareable paper:** [`docs/whitepaper/index.html`](docs/whitepaper/index.html) is the same
+  material as one standalone page for sending to someone who won't clone a repo. If the two ever
+  differ, the Markdown wins.
+- **Coordinator roles:** [`templates/roles/`](templates/roles/) for running many sessions at once.
 
 ## What's in it
 
@@ -35,6 +102,8 @@ before making it a required check.
 | CI | [`ci/github/agent-governance.yml`](ci/github/agent-governance.yml) · [`ci/azure-pipelines/agent-governance.yml`](ci/azure-pipelines/agent-governance.yml) | Runs the gates as required checks |
 | Loop | [`templates/PULL_REQUEST_TEMPLATE.md`](templates/PULL_REQUEST_TEMPLATE.md) | Closure lines, risk flags, "new rule, lesson or check added" |
 | Loop | [`templates/session-handoff.md`](templates/session-handoff.md) | One handoff note per session, merged with the code |
+| Roles | [`templates/roles/merge-trains.md`](templates/roles/merge-trains.md) | One scheduler session: decides merge order and file ownership, batches frozen PRs into one CI run, merges on green |
+| Roles | [`templates/roles/dispatch.md`](templates/roles/dispatch.md) | One planner session: backlog hygiene, conflict-aware briefs, human-approved task chips |
 
 ## Adopting it in a repo
 
@@ -60,6 +129,9 @@ Do these in order. The first four give the most protection for the least effort.
    commit is refused, because the checks read the working tree and can't vouch for it.
 6. Add the PR template, `templates/session-handoff.md` as `memory-bank/sessions/README.md`, and
    `catalogues.json` with `check-catalogue.mjs` once you have shared components worth cataloguing.
+7. Once you routinely run three or more agent sessions at once, copy `templates/roles/` to
+   `.agents/roles/` and start one Merge Trains and one Dispatch session. See its
+   [README](templates/roles/README.md).
 
 Keep the tests with any copy you change. `tests/run-tests.sh` reads the scripts from `KIT_SCRIPTS`
 and `KIT_HOOKS` (default: this kit's `scripts/` and `hooks/`), so a copy laid out the same way can
@@ -116,3 +188,11 @@ the way a consuming repo would, and runs every script against pass and fail case
 
 This kit is the source for the scripts. If you keep a copy in an organisation standards repo, copy
 changes from here and re-run the tests there, rather than editing the copy.
+
+## About
+
+Created and maintained by [Bronson Coutts](https://github.com/bronsonacoutts). The practice was
+developed while building production software with AI agents; this kit is a generalised extraction,
+released under the [MIT licence](LICENSE) as a personal open-source project. The products it was
+developed on are proprietary and are not part of this repository; no code, data or configuration
+from them is included. Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
