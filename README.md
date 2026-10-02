@@ -5,11 +5,9 @@
 
 **Rules an AI agent can ignore aren't governance. This kit makes them mechanical.**
 
-Hooks, CI gates, templates and coordinator playbooks for governing AI coding agents from ticket to
-merge. Extracted from a two-engineer team that ships roughly three in four of its pull requests
-through agent sessions. The scripts are plain bash and Node 18+ and gate the pull request, so they
-apply to any agent (or human) that opens one. The coordinator roles assume an agent tool with
-named sessions and session-to-session messaging; they were developed on Claude Code.
+Hooks and CI checks that stop AI coding agents from skipping your rules, from ticket to merge.
+Plain bash and Node 18+. Works with any agent that opens pull requests. Built by a two-person team
+whose agents write most of its PRs.
 
 ```text
 $ HEAD_REF=agent/fix-login PR_TITLE="Fix login" bash scripts/work-item-guard.sh
@@ -19,31 +17,33 @@ exit=1
 
 More blocked-PR examples in [`docs/demo.md`](docs/demo.md).
 
-## Who it's for
+## Is this for you?
 
-| If you are... | You probably have this problem | The kit gives you |
-|---|---|---|
-| **A small team or solo dev leaning on coding agents** | Output outruns review. Nobody can read 50+ PRs a week line by line. | Gates that check the boring things for you, so human attention goes to judgement. |
-| **An engineering lead rolling agents out to a team** | Every dev prompts differently; "please follow the rules" isn't enforceable. | One `AGENTS.md` pattern plus CI checks that fail when the rule is broken. |
-| **A regulated or audit-sensitive shop** (health, safety, finance, legal) | You must show who changed what, why, and who approved it, years later. | Work-item traceability on every change, explicit closure lines, approvals tied to the exact commit. |
-| **A platform / DevEx / security engineer** | Agents can edit CI config, hooks and the gates themselves. | Gates that run from the base branch, so a PR can't switch off the check judging it. |
-| **Someone running many agent sessions in parallel** | Two sessions edit the same migration; every PR re-runs the full CI suite. | Merge Trains and Dispatch coordinator roles: one scheduler, claimed files, one CI run per batch. |
+**Yes, if any of these are true:**
 
-## Problems it solves
+- AI agents open pull requests in your repo.
+- You can't read every agent PR line by line.
+- You need to show later which ticket a change was for and who approved it.
+- You run more than one agent session at a time.
 
-| Problem you'll recognise | What fixes it here |
+**Probably not, if:**
+
+- Humans open every PR and AI only autocompletes or chats.
+- You don't use pull requests or CI.
+
+## What it stops
+
+| Without it | With it |
 |---|---|
-| Agent pushes straight to `main` | `hooks/branch-guard.mjs` blocks the edit |
-| PR with no ticket, so no audit trail | `work-item-guard.sh`; the only opt-out is a visible label |
-| A ticket auto-closes because someone wrote "fixes PROJ-9" in passing | `closure-keys.mjs`: only an explicit `Closes KEY` line closes |
-| "Lighter CI" label quietly skips tests on a risky change | `ci-tier.mjs`: the label is a request, the diff decides |
-| Agent-written PR merges with no second reader | `review-gate.sh`: keyed on risky paths and agent authorship |
-| Stale approval survives a new push | `count-approvals.mjs`: only approvals on the current head count |
-| A PR edits the gate that's judging it | Gates run from the base branch; gate files are high-risk paths |
-| Written rules that point at checks that don't exist | `verify-rule-refs.mjs` fails the build |
-| Same review nit comes back every week | `agent-rule.md` + the "close the loop" step turn it into a check |
-| Parallel sessions corrupt `.git/HEAD` | `git-health.sh` detects and repairs it |
-| Merge queue is a human with a spreadsheet | [`templates/roles/`](templates/roles/): Merge Trains and Dispatch |
+| An agent edits `main` directly | The edit is blocked |
+| A PR has no ticket | CI fails until it has one |
+| "fixes PROJ-9" in passing closes a ticket | Only a `Closes PROJ-9` line closes it |
+| A "light CI" label skips tests on a risky change | The diff decides the CI tier, not the label |
+| An agent PR merges with nobody else reading it | Risky paths need a second reader |
+| An approval survives a later push | Only approvals on the latest commit count |
+| A PR switches off the check judging it | Checks run from the base branch |
+| A rule names a check that doesn't exist | CI fails |
+| Parallel sessions collide on the same files | One coordinator session decides who owns what |
 
 ## Try it in two minutes
 
