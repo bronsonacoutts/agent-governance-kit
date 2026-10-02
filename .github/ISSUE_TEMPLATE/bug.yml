@@ -1,0 +1,29 @@
+name: Bug or confusing step
+description: A script misbehaves, the installer fails, or a step in the docs doesn't work as written.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Found a way to get a pull request past a gate? Please report it privately instead:
+        **Security → Report a vulnerability**.
+  - type: input
+    id: component
+    attributes:
+      label: Which part?
+      placeholder: e.g. install.sh, work-item-guard.sh, the GitHub workflow, README step 3
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+      description: The command you ran and its output help most.
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      placeholder: e.g. GitHub Actions / Azure Pipelines, OS, Node version, agent tool
